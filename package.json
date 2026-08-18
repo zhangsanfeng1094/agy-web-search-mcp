@@ -1,0 +1,14 @@
+{
+  "name": "agy-web-search-mcp",
+  "private": true,
+  "type": "module",
+  "version": "0.2.0",
+  "scripts": {
+    "dev": "bun run src/dev.ts",
+    "start": "bun run src/dev.ts",
+    "import-agy": "bun run scripts/import-agy.ts",
+    "test": "bun test",
+    "deploy:cf": "wrangler deploy",
+    "deploy:vercel": "vercel --prod"
+  }
+}
