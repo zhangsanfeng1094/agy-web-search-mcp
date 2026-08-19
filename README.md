@@ -23,7 +23,7 @@ npx wrangler deploy
 
 打开 `https://agy-web-search-mcp.<subdomain>.workers.dev/`，点 **Sign in with Google**。
 
-agy 用的是桌面端 OAuth 客户端，只能回调 `http://localhost:51121/oauth-callback`。授权后那个页面会打不开，把地址栏完整 URL 贴回网站即可拿到 `refresh_token` 和 Grok 配置。
+agy 用的是桌面端 OAuth 客户端，只能回调 `http://localhost:51121/oauth-callback`。授权后那个页面会打不开，把地址栏完整 URL 贴回网站。登录成功后 session 写在这个浏览器的 `localStorage`，首页会显示已登录，并给出带 `X-Agy-Refresh-Token` 的 Grok 配置。
 
 上线 MCP：`https://agy-web-search-mcp.<subdomain>.workers.dev/mcp`
 
@@ -46,7 +46,7 @@ bun run dev
 
 ## Grok
 
-登录成功页会给出完整片段。远程一般是：
+登录成功后首页会给出完整片段（token 来自这个浏览器的 `localStorage`）。远程一般是：
 
 ```toml
 [mcp_servers.agy-web-search]
@@ -54,7 +54,7 @@ url = "https://agy-web-search-mcp.<subdomain>.workers.dev/mcp"
 headers = { Authorization = "Bearer ${AGY_MCP_TOKEN}", "X-Agy-Refresh-Token" = "${AGY_REFRESH_TOKEN}" }
 ```
 
-`AGY_MCP_TOKEN` 就是 `MCP_AUTH_TOKEN`。服务端不存 Google token；也可以事后 `wrangler secret put AGY_REFRESH_TOKEN`，这样 Grok 就不用带 `X-Agy-Refresh-Token`。
+`AGY_MCP_TOKEN` 就是 `MCP_AUTH_TOKEN`。页面 storage 只给网页自己用；Grok 调 `/mcp` 时必须带 header。也可以事后 `wrangler secret put AGY_REFRESH_TOKEN`，这样 Grok 就不用带 `X-Agy-Refresh-Token`。
 
 本地：
 

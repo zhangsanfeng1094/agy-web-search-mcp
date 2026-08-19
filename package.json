@@ -2,7 +2,7 @@
   "name": "agy-web-search-mcp",
   "private": true,
   "type": "module",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "scripts": {
     "dev": "bun run src/dev.ts",
     "start": "bun run src/dev.ts",
