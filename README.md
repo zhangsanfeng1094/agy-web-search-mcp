@@ -46,7 +46,7 @@ bun run dev
 
 ## Grok
 
-登录成功后首页会给出完整片段（token 来自这个浏览器的 `localStorage`）。远程一般是：
+登录成功后首页点 **一键复制**，把 prompt 贴给 Agent，让它写入 MCP 配置。token 来自这个浏览器的 `localStorage`。远程一般是：
 
 ```toml
 [mcp_servers.agy-web-search]

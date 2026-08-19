@@ -27,6 +27,8 @@ const CSS = `
   th { color: #9aa0a6; font-weight: 550; }
   td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
   td.q { word-break: break-word; }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 28px 0 8px; }
+  .row h2 { margin: 0; }
 `;
 
 export const SESSION_STORAGE_KEY = "agy-web-search-session";
@@ -45,7 +47,11 @@ export function landingHtml(opts: {
     missing: "missing — sign in with Google",
   }[opts.session];
 
-  const grok = grokSnippet(opts.origin, opts.authRequired, undefined);
+  const prompt = agentConfigPrompt({
+    origin: opts.origin,
+    authRequired: opts.authRequired,
+    refreshToken: undefined,
+  });
   const hint = opts.oauthManual
     ? "agy 的 OAuth 客户端只能回调 localhost。授权后浏览器会打开一个打不开的页面，把地址栏完整 URL 贴回来即可。"
     : "本机回调会自动接住授权码，登录后 session 写进这个浏览器的 localStorage。";
@@ -70,9 +76,13 @@ ${metricsHtml(opts.metrics)}
 <button type="button" class="btn ghost" id="logout-btn" hidden>退出</button></p>
 <p class="muted" id="login-hint">${escapeHtml(hint)}</p>
 </div>
-<h2>Grok</h2>
-<pre id="grok-snippet">${escapeHtml(grok)}</pre>
-<p class="muted">登录成功后 session 写在这个浏览器的 localStorage，刷新还在。Grok 调 <code>/mcp</code> 时看不到页面 storage，所以下面配置会带上 <code>X-Agy-Refresh-Token</code>。也可以再 <code>wrangler secret put AGY_REFRESH_TOKEN</code> 存到服务端。</p>
+<div class="row">
+<h2>给 Agent 的配置 prompt</h2>
+<button type="button" class="btn" id="copy-agent-prompt">一键复制</button>
+<span id="copy-agent-status" class="muted"></span>
+</div>
+<pre id="agent-prompt">${escapeHtml(prompt)}</pre>
+<p class="muted">复制后贴给 Grok / Claude / Cursor，让它写入 MCP 配置。登录成功后 prompt 会带上 <code>X-Agy-Refresh-Token</code>（存在这个浏览器的 localStorage）。也可以再 <code>wrangler secret put AGY_REFRESH_TOKEN</code> 存到服务端。</p>
 ${browserSessionScript()}
 </body>
 </html>`;
@@ -205,41 +215,75 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     location.replace("/");
     return;
   }
+  var origin = document.body.getAttribute("data-origin") || "";
+  var auth = document.body.getAttribute("data-auth") === "1";
   var s = null;
   try {
     s = JSON.parse(localStorage.getItem(KEY) || "null");
   } catch (e) {
     s = null;
   }
-  if (!s || typeof s.refreshToken !== "string" || !s.refreshToken) return;
-  var status = document.getElementById("session-status");
-  var origin = document.body.getAttribute("data-origin") || "";
-  var auth = document.body.getAttribute("data-auth") === "1";
-  if (status && status.getAttribute("data-source") === "missing") {
-    status.className = "ok";
-    status.textContent = s.email ? ("browser (" + s.email + ")") : "browser (localStorage)";
-    var grok = document.getElementById("grok-snippet");
-    if (grok) grok.textContent = grokClientSnippet(origin, auth, s.refreshToken);
+  if (s && typeof s.refreshToken === "string" && s.refreshToken) {
+    var status = document.getElementById("session-status");
+    if (status && status.getAttribute("data-source") === "missing") {
+      status.className = "ok";
+      status.textContent = s.email ? ("browser (" + s.email + ")") : "browser (localStorage)";
+      var promptEl = document.getElementById("agent-prompt");
+      if (promptEl) promptEl.textContent = agentClientPrompt(origin, auth, s.refreshToken);
+    }
+    var title = document.getElementById("login-title");
+    var account = document.getElementById("login-account");
+    var emailEl = document.getElementById("login-email");
+    var loginBtn = document.getElementById("login-btn");
+    var logout = document.getElementById("logout-btn");
+    var hint = document.getElementById("login-hint");
+    if (title) title.textContent = "浏览器里已有 session";
+    if (account) account.hidden = false;
+    if (emailEl) emailEl.textContent = s.email || "(unknown)";
+    if (loginBtn) loginBtn.textContent = "重新登录";
+    if (logout) {
+      logout.hidden = false;
+      logout.addEventListener("click", function () {
+        localStorage.removeItem(KEY);
+        location.reload();
+      });
+    }
+    if (hint) {
+      hint.textContent = "session 存在这个浏览器的 localStorage。点一键复制，把 prompt 贴给 Agent 写入 MCP 配置。";
+    }
   }
-  var title = document.getElementById("login-title");
-  var account = document.getElementById("login-account");
-  var emailEl = document.getElementById("login-email");
-  var loginBtn = document.getElementById("login-btn");
-  var logout = document.getElementById("logout-btn");
-  var hint = document.getElementById("login-hint");
-  if (title) title.textContent = "浏览器里已有 session";
-  if (account) account.hidden = false;
-  if (emailEl) emailEl.textContent = s.email || "(unknown)";
-  if (loginBtn) loginBtn.textContent = "重新登录";
-  if (logout) {
-    logout.hidden = false;
-    logout.addEventListener("click", function () {
-      localStorage.removeItem(KEY);
-      location.reload();
+  var copyBtn = document.getElementById("copy-agent-prompt");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", function () {
+      var el = document.getElementById("agent-prompt");
+      var text = el ? el.textContent || "" : "";
+      copyText(text).then(function (ok) {
+        var st = document.getElementById("copy-agent-status");
+        if (st) st.textContent = ok ? "已复制，去贴给 Agent" : "复制失败，请手动选中";
+        if (ok) setTimeout(function () { if (st) st.textContent = ""; }, 2500);
+      });
     });
   }
-  if (hint) {
-    hint.textContent = "session 存在这个浏览器的 localStorage，刷新还在。Grok 调 /mcp 时读不到页面 storage，请复制下面带 X-Agy-Refresh-Token 的配置。";
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () {
+        return fallbackCopy(text);
+      });
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
   }
   function grokClientSnippet(origin, authRequired, refreshToken) {
     var headers = [];
@@ -248,8 +292,53 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     var headerLine = headers.length ? "\\nheaders = { " + headers.join(", ") + " }" : "";
     return "[mcp_servers.agy-web-search]\\nurl = \\"" + origin + "/mcp\\"" + headerLine;
   }
+  function agentClientPrompt(origin, authRequired, refreshToken) {
+    var lines = [
+      "请把下面这个 Streamable HTTP MCP 加到你的 MCP 配置里。",
+      "Grok 直接用这段 TOML；其他客户端按同样的 url 和 headers 写成自己的格式。不要改 URL 和 header 的值。",
+      "",
+      "名称：agy-web-search",
+      "传输：Streamable HTTP",
+      "端点：" + origin + "/mcp",
+      "工具：search_web(query) — 查新闻、近况和需要引用的事实",
+      "",
+      grokClientSnippet(origin, authRequired, refreshToken)
+    ];
+    if (authRequired) {
+      lines.push("", "Authorization 里的 \${AGY_MCP_TOKEN} 换成你部署时设的 MCP_AUTH_TOKEN。");
+    }
+    if (!refreshToken) {
+      lines.push("", "还没有 Google session。先打开网站 Sign in with Google，再复制一次；或自行补上 X-Agy-Refresh-Token。");
+    }
+    return lines.join("\\n");
+  }
 })();
 </script>`;
+}
+
+export function agentConfigPrompt(opts: {
+  origin: string;
+  authRequired: boolean;
+  refreshToken?: string;
+}): string {
+  const lines = [
+    "请把下面这个 Streamable HTTP MCP 加到你的 MCP 配置里。",
+    "Grok 直接用这段 TOML；其他客户端按同样的 url 和 headers 写成自己的格式。不要改 URL 和 header 的值。",
+    "",
+    "名称：agy-web-search",
+    "传输：Streamable HTTP",
+    `端点：${opts.origin}/mcp`,
+    "工具：search_web(query) — 查新闻、近况和需要引用的事实",
+    "",
+    grokSnippet(opts.origin, opts.authRequired, opts.refreshToken),
+  ];
+  if (opts.authRequired) {
+    lines.push("", "Authorization 里的 ${AGY_MCP_TOKEN} 换成你部署时设的 MCP_AUTH_TOKEN。");
+  }
+  if (!opts.refreshToken) {
+    lines.push("", "还没有 Google session。先打开网站 Sign in with Google，再复制一次；或自行补上 X-Agy-Refresh-Token。");
+  }
+  return lines.join("\n");
 }
 
 function grokSnippet(origin: string, authRequired: boolean, refreshToken?: string): string {

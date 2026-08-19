@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { landingHtml, oauthSuccessHtml, SESSION_STORAGE_KEY } from "./page.ts";
+import { agentConfigPrompt, landingHtml, oauthSuccessHtml, SESSION_STORAGE_KEY } from "./page.ts";
 import type { MetricsSnapshot } from "./metrics.ts";
 
 const metrics: MetricsSnapshot = {
@@ -22,9 +22,28 @@ describe("browser session storage", () => {
     });
     expect(html).toContain(SESSION_STORAGE_KEY);
     expect(html).toContain('id="session-status"');
-    expect(html).toContain('id="grok-snippet"');
+    expect(html).toContain('id="agent-prompt"');
+    expect(html).toContain('id="copy-agent-prompt"');
+    expect(html).toContain("一键复制");
     expect(html).toContain("localStorage.getItem");
     expect(html).toContain("browser (localStorage)");
+    expect(html).toContain("https://example.workers.dev/mcp");
+    expect(html).toContain("search_web");
+  });
+
+  test("agent prompt includes url, tool, and tokens", () => {
+    const text = agentConfigPrompt({
+      origin: "https://example.workers.dev",
+      authRequired: true,
+      refreshToken: "1//tok",
+    });
+    expect(text).toContain("Streamable HTTP");
+    expect(text).toContain("https://example.workers.dev/mcp");
+    expect(text).toContain("search_web");
+    expect(text).toContain("1//tok");
+    expect(text).toContain("X-Agy-Refresh-Token");
+    expect(text).toContain("MCP_AUTH_TOKEN");
+    expect(text).not.toContain("还没有 Google session");
   });
 
   test("oauth success writes localStorage then returns home", () => {
