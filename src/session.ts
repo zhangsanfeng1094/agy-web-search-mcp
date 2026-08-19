@@ -1,4 +1,5 @@
 import type { AppEnv, RequestSession } from "./types.ts";
+import { oauthClient } from "./oauth.ts";
 
 const OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
@@ -41,17 +42,6 @@ export async function getAccessToken(session: RequestSession, env: AppEnv = {}):
 
 export function invalidateAccessToken(session: RequestSession): void {
   if (session.refreshToken) cache.delete(session.refreshToken);
-}
-
-function oauthClient(env: AppEnv): { id: string; secret: string } {
-  const id = env.AGY_OAUTH_CLIENT_ID?.trim();
-  const secret = env.AGY_OAUTH_CLIENT_SECRET?.trim();
-  if (!id || !secret) {
-    throw new Error(
-      "missing AGY_OAUTH_CLIENT_ID / AGY_OAUTH_CLIENT_SECRET (agy desktop OAuth client; put them in .dev.vars or wrangler/vercel secrets)",
-    );
-  }
-  return { id, secret };
 }
 
 async function refreshAccessToken(refresh: string, env: AppEnv): Promise<string> {

@@ -64,7 +64,6 @@ export async function handleRequest(
         session: session.source,
         authRequired: Boolean(env.MCP_AUTH_TOKEN),
         origin: url.origin,
-        oauthReady: Boolean(env.AGY_OAUTH_CLIENT_ID && env.AGY_OAUTH_CLIENT_SECRET),
         oauthManual: oauthIsManual(url.origin, env),
         metrics: metricsSnapshot(),
       }),

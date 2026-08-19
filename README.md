@@ -7,25 +7,17 @@
 ## 一键部署
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/zhangsanfeng1094/agy-web-search-mcp)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/zhangsanfeng1094/agy-web-search-mcp&project-name=agy-web-search-mcp&repository-name=agy-web-search-mcp&env=AGY_OAUTH_CLIENT_ID,AGY_OAUTH_CLIENT_SECRET,MCP_AUTH_TOKEN&envDescription=agy%20desktop%20OAuth%20client%20and%20a%20Bearer%20token%20that%20protects%20/mcp)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/zhangsanfeng1094/agy-web-search-mcp&project-name=agy-web-search-mcp&repository-name=agy-web-search-mcp&env=MCP_AUTH_TOKEN&envDescription=Optional%20Bearer%20token%20that%20protects%20/mcp)
 
-部署完成后到平台里补这三个值，再打开网站登录：
+内置了 agy 桌面端 OAuth 客户端，部署完直接打开网站 **Sign in with Google**。不必再填 `AGY_OAUTH_CLIENT_ID` / `AGY_OAUTH_CLIENT_SECRET`。
 
-| 变量 | 说明 |
-| --- | --- |
-| `AGY_OAUTH_CLIENT_ID` | agy 桌面端 OAuth client id |
-| `AGY_OAUTH_CLIENT_SECRET` | agy 桌面端 OAuth client secret |
-| `MCP_AUTH_TOKEN` | 自己生成一把 Bearer，保护 `/mcp` |
-
-Cloudflare 更合适：搜索经常超过 Vercel Hobby 的 10s 超时。
+可选：设一个 `MCP_AUTH_TOKEN`，保护公开的 `/mcp`。Cloudflare 更合适：搜索经常超过 Vercel Hobby 的 10s 超时。
 
 ## Cloudflare Workers
 
 ```bash
 npx wrangler login
-npx wrangler secret put AGY_OAUTH_CLIENT_ID
-npx wrangler secret put AGY_OAUTH_CLIENT_SECRET
-npx wrangler secret put MCP_AUTH_TOKEN       # 自己生成一个 Bearer，保护 /mcp
+npx wrangler secret put MCP_AUTH_TOKEN       # 可选：自己生成一个 Bearer，保护 /mcp
 npx wrangler deploy
 ```
 
@@ -38,9 +30,7 @@ agy 用的是桌面端 OAuth 客户端，只能回调 `http://localhost:51121/oa
 ## Vercel
 
 ```bash
-npx vercel env add AGY_OAUTH_CLIENT_ID
-npx vercel env add AGY_OAUTH_CLIENT_SECRET
-npx vercel env add MCP_AUTH_TOKEN
+npx vercel env add MCP_AUTH_TOKEN            # 可选
 npx vercel --prod
 ```
 
@@ -85,8 +75,8 @@ bun run import-agy
 
 | 变量 | 作用 |
 | --- | --- |
-| `AGY_OAUTH_CLIENT_ID` | agy 桌面端 OAuth client id（不要提交到 git） |
-| `AGY_OAUTH_CLIENT_SECRET` | agy 桌面端 OAuth client secret（不要提交到 git） |
+| `AGY_OAUTH_CLIENT_ID` | 可选。覆盖内置的 agy 桌面端 OAuth client id |
+| `AGY_OAUTH_CLIENT_SECRET` | 可选。覆盖内置的 agy 桌面端 OAuth client secret |
 | `AGY_OAUTH_REDIRECT_URI` | 可选。自己的 Web 客户端回调，例如 `https://xxx.workers.dev/oauth/callback`，部署后即可自动回跳 |
 | `AGY_REFRESH_TOKEN` | 可选。服务端保存的 Google refresh token |
 | `MCP_AUTH_TOKEN` | 保护 `/mcp` 的 Bearer |

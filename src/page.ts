@@ -33,7 +33,6 @@ export function landingHtml(opts: {
   session: SessionSource;
   authRequired: boolean;
   origin: string;
-  oauthReady: boolean;
   oauthManual: boolean;
   metrics: MetricsSnapshot;
 }): string {
@@ -59,15 +58,11 @@ export function landingHtml(opts: {
 <p>MCP endpoint: <code>${escapeHtml(opts.origin)}/mcp</code>${opts.authRequired ? " · Bearer token required" : ""}</p>
 ${metricsHtml(opts.metrics)}
 <h2>用 Google 登录拿 session</h2>
-${
-  opts.oauthReady
-    ? `<p><a class="btn" href="/oauth/login">Sign in with Google</a></p>
+<p><a class="btn" href="/oauth/login">Sign in with Google</a></p>
 ${
   opts.oauthManual
     ? `<p class="muted">agy 的 OAuth 客户端只能回调 localhost。授权后浏览器会打开一个打不开的页面，把地址栏完整 URL 贴回来即可。</p>`
     : `<p class="muted">本机回调会自动接住授权码，登录后直接显示 refresh token。</p>`
-}`
-    : `<p class="bad">先配置 <code>AGY_OAUTH_CLIENT_ID</code> / <code>AGY_OAUTH_CLIENT_SECRET</code> 再部署，然后回这个页面登录。</p>`
 }
 <h2>Grok</h2>
 <pre>${escapeHtml(grok)}</pre>

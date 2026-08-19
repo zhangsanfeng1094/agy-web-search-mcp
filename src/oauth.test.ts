@@ -4,7 +4,9 @@ import {
   assertState,
   buildAuthUrl,
   createPending,
+  DEFAULT_OAUTH_CLIENT_ID,
   isLoopbackHost,
+  oauthClient,
   oauthIsManual,
   oauthRedirectUri,
   parseCallbackInput,
@@ -18,6 +20,11 @@ const env = {
 };
 
 describe("oauth helpers", () => {
+  test("uses built-in agy client when env is empty", () => {
+    expect(oauthClient({}).id).toBe(DEFAULT_OAUTH_CLIENT_ID);
+    expect(oauthClient(env).id).toBe(env.AGY_OAUTH_CLIENT_ID);
+  });
+
   test("loopback vs remote redirect", () => {
     expect(isLoopbackHost("127.0.0.1")).toBe(true);
     expect(isLoopbackHost("localhost")).toBe(true);
@@ -63,19 +70,21 @@ describe("oauth helpers", () => {
 });
 
 describe("oauth http", () => {
-  test("landing shows login when oauth client is set", async () => {
-    const resp = await handleRequest(new Request("http://127.0.0.1:8787/"), env);
+  test("landing shows login without oauth env", async () => {
+    const resp = await handleRequest(new Request("http://127.0.0.1:8787/"), {});
     expect(resp.status).toBe(200);
     const body = await resp.text();
     expect(body).toContain("/oauth/login");
     expect(body).toContain("Sign in with Google");
+    expect(body).not.toContain("先配置");
   });
 
   test("local /oauth/login redirects to Google", async () => {
-    const resp = await handleRequest(new Request("http://127.0.0.1:8787/oauth/login"), env);
+    const resp = await handleRequest(new Request("http://127.0.0.1:8787/oauth/login"), {});
     expect(resp.status).toBe(302);
     const loc = resp.headers.get("location") ?? "";
     expect(loc.startsWith("https://accounts.google.com/")).toBe(true);
+    expect(loc).toContain(`client_id=${DEFAULT_OAUTH_CLIENT_ID}`);
     expect(loc).toContain("redirect_uri=http%3A%2F%2F127.0.0.1%3A8787%2Foauth%2Fcallback");
     expect(resp.headers.get("set-cookie") ?? "").toContain("agy_oauth=");
   });
