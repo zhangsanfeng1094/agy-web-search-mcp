@@ -4,18 +4,23 @@
 
 先部署，再打开网站用 Google 登录拿 session。服务端不必事先写入 `AGY_REFRESH_TOKEN`。
 
-## 一键部署
+## 部署（先 fork）
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/zhangsanfeng1094/agy-web-search-mcp)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/zhangsanfeng1094/agy-web-search-mcp&project-name=agy-web-search-mcp&repository-name=agy-web-search-mcp&env=MCP_AUTH_TOKEN&envDescription=Optional%20Bearer%20token%20that%20protects%20/mcp)
+Cloudflare / Vercel 的「一键部署」会在你账号里**另建一份独立仓库**，不是 fork，之后没法点 Sync fork 跟上游。正确做法是先 fork，再部署这份 fork。
 
-内置了 agy 桌面端 OAuth 客户端，部署完直接打开网站 **Sign in with Google**。不必再填 `AGY_OAUTH_CLIENT_ID` / `AGY_OAUTH_CLIENT_SECRET`。
+1. [Fork 这个仓库](https://github.com/zhangsanfeng1094/agy-web-search-mcp/fork)
+2. Cloudflare Dashboard → **Workers & Pages** → **Create** → **Import a repository**，选你刚 fork 出来的仓库
+3. 部署完成后打开网站，点 **Sign in with Google**
 
-可选：设一个 `MCP_AUTH_TOKEN`，保护公开的 `/mcp`。Cloudflare 更合适：搜索经常超过 Vercel Hobby 的 10s 超时。
+内置了 agy 桌面端 OAuth 客户端，不必再填 `AGY_OAUTH_CLIENT_ID` / `AGY_OAUTH_CLIENT_SECRET`。可选：在 Worker Secrets 里加 `MCP_AUTH_TOKEN`，保护公开的 `/mcp`。
 
-## Cloudflare Workers
+Vercel 同样先 fork，再 [Import](https://vercel.com/new) 你的 fork。Cloudflare 更合适：搜索经常超过 Vercel Hobby 的 10s 超时。
+
+## Cloudflare Workers（本机）
 
 ```bash
+git clone https://github.com/<你的用户名>/agy-web-search-mcp.git
+cd agy-web-search-mcp
 npx wrangler login
 npx wrangler secret put MCP_AUTH_TOKEN       # 可选：自己生成一个 Bearer，保护 /mcp
 npx wrangler deploy
