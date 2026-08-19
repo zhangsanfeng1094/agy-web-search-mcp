@@ -1,3 +1,8 @@
+export type MetricsNamespace = {
+  idFromName(name: string): unknown;
+  get(id: unknown): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
+};
+
 export type AppEnv = {
   AGY_REFRESH_TOKEN?: string;
   AGY_ACCESS_TOKEN?: string;
@@ -8,6 +13,7 @@ export type AppEnv = {
   AGY_SEARCH_MODEL?: string;
   AGY_SEARCH_ENDPOINT?: string;
   MCP_AUTH_TOKEN?: string;
+  METRICS?: MetricsNamespace;
 };
 
 export type SessionSource = "env" | "header" | "file" | "missing";

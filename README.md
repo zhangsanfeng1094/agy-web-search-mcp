@@ -27,6 +27,8 @@ agy 用的是桌面端 OAuth 客户端，只能回调 `http://localhost:51121/oa
 
 上线 MCP：`https://agy-web-search-mcp.<subdomain>.workers.dev/mcp`
 
+首页监控在 Cloudflare 上记到 Durable Object，Grok 调 `/mcp` 之后刷新网站能看到成功/失败/耗时。本地 `bun run dev` 仍是进程内存。
+
 ## Vercel
 
 ```bash

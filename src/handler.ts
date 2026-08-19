@@ -10,7 +10,7 @@ import {
   type RpcResponse,
 } from "./mcp.ts";
 import { landingHtml, oauthErrorHtml, oauthSuccessHtml, oauthWaitHtml } from "./page.ts";
-import { metricsSnapshot, recordAuthFail, recordCall } from "./metrics.ts";
+import { metricsClient, type MetricsClient } from "./metrics.ts";
 import {
   assertState,
   buildAuthUrl,
@@ -44,8 +44,10 @@ export async function handleRequest(
   const url = new URL(req.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const session = sessionFromRequest(req, env, fileSession);
+  const metrics = metricsClient(env);
 
   if (req.method === "GET" && (path === "/" || path === "/health")) {
+    const snap = await metrics.snapshot();
     if (path === "/health" || wantsJson(req)) {
       return json(
         {
@@ -54,7 +56,7 @@ export async function handleRequest(
           version: SERVER_VERSION,
           session: session.source,
           authRequired: Boolean(env.MCP_AUTH_TOKEN),
-          metrics: metricsSnapshot(),
+          metrics: snap,
         },
         200,
       );
@@ -65,7 +67,7 @@ export async function handleRequest(
         authRequired: Boolean(env.MCP_AUTH_TOKEN),
         origin: url.origin,
         oauthManual: oauthIsManual(url.origin, env),
-        metrics: metricsSnapshot(),
+        metrics: snap,
       }),
     );
   }
@@ -89,7 +91,7 @@ export async function handleRequest(
   }
 
   if (req.method === "POST" && (path === "/mcp" || path === "/")) {
-    const authErr = checkAuth(req, env);
+    const authErr = await checkAuth(req, env, metrics);
     if (authErr) return authErr;
 
     let body: unknown;
@@ -107,7 +109,7 @@ export async function handleRequest(
       const out = [];
       for (const item of requests) {
         if (isNotificationOrResponse(item)) continue;
-        out.push(await invokeRpc(item, env, session));
+        out.push(await invokeRpc(item, env, session, metrics));
       }
       return json(out, 200);
     }
@@ -116,7 +118,7 @@ export async function handleRequest(
     if (isNotificationOrResponse(msg)) {
       return new Response(null, { status: 202, headers: CORS });
     }
-    const result = await invokeRpc(msg, env, session);
+    const result = await invokeRpc(msg, env, session, metrics);
     return json(result, 200);
   }
 
@@ -130,24 +132,34 @@ function isNotificationOrResponse(msg: RpcRequest): boolean {
   return false;
 }
 
-function checkAuth(req: Request, env: AppEnv): Response | null {
+async function checkAuth(req: Request, env: AppEnv, metrics: MetricsClient): Promise<Response | null> {
   const expected = env.MCP_AUTH_TOKEN?.trim();
   if (!expected) return null;
   const got = req.headers.get("authorization") ?? "";
   const token = got.toLowerCase().startsWith("bearer ") ? got.slice(7).trim() : "";
   if (token && timingSafeEqual(token, expected)) return null;
-  recordAuthFail();
+  await metrics.recordAuthFail();
   return json({ error: "unauthorized" }, 401);
 }
 
-async function invokeRpc(req: RpcRequest, env: AppEnv, session: RequestSession): Promise<RpcResponse> {
+async function invokeRpc(
+  req: RpcRequest,
+  env: AppEnv,
+  session: RequestSession,
+  metrics: MetricsClient,
+): Promise<RpcResponse> {
   const t0 = Date.now();
   const result = await handleRpc(req, env, session);
-  if (req.method === "tools/call") recordToolCall(req, result, Date.now() - t0);
+  if (req.method === "tools/call") await recordToolCall(req, result, Date.now() - t0, metrics);
   return result;
 }
 
-function recordToolCall(req: RpcRequest, result: RpcResponse, ms: number): void {
+async function recordToolCall(
+  req: RpcRequest,
+  result: RpcResponse,
+  ms: number,
+  metrics: MetricsClient,
+): Promise<void> {
   const params = (req.params ?? {}) as { name?: string; arguments?: unknown };
   let query: string | undefined;
   try {
@@ -157,7 +169,7 @@ function recordToolCall(req: RpcRequest, result: RpcResponse, ms: number): void 
   }
   const toolError = result.result as { isError?: boolean; content?: Array<{ text?: string }> } | undefined;
   const failed = Boolean(result.error) || Boolean(toolError?.isError);
-  recordCall({
+  await metrics.record({
     ok: !failed,
     ms,
     tool: params.name || "unknown",
@@ -180,14 +192,14 @@ function wantsJson(req: Request): boolean {
 function json(data: unknown, status: number): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 }
 
 function html(body: string, status = 200, extra: Record<string, string> = {}): Response {
   return new Response(body, {
     status,
-    headers: { ...CORS, "Content-Type": "text/html; charset=utf-8", ...extra },
+    headers: { ...CORS, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", ...extra },
   });
 }
 

@@ -178,7 +178,11 @@ function metricsHtml(m: MetricsSnapshot): string {
   ${statBox(m.p95Ms != null ? fmtMs(m.p95Ms) : "—", "P95")}
   ${statBox(String(m.authFail), "未授权", m.authFail ? "bad" : undefined)}
 </div>
-<p class="muted">自 ${escapeHtml(fmtTime(m.startedAt))} 起记在当前进程内存里，重启或 Worker 冷启动会清零。每 15 秒刷新。</p>
+<p class="muted">${m.total ? `自 ${escapeHtml(fmtTime(m.startedAt))} 起。` : ""}${
+    m.persistent
+      ? "跨请求保存在 Cloudflare Durable Object。"
+      : "记在当前进程内存里，重启或 Worker 冷启动会清零。"
+  }每 15 秒刷新。</p>
 <table>
   <thead><tr><th>时间</th><th>结果</th><th>耗时</th><th>查询</th></tr></thead>
   <tbody>${rows}</tbody>

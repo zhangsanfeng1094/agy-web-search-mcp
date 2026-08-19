@@ -5,3 +5,10 @@ compatibility_date = "2026-08-01"
 [vars]
 AGY_SEARCH_PROJECT = "default-cli-project"
 AGY_SEARCH_MODEL = "gemini-3.6-flash-high"
+
+[durable_objects]
+bindings = [{ name = "METRICS", class_name = "MetricsStore" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["MetricsStore"]
