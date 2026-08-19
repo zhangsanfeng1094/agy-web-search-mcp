@@ -55,25 +55,27 @@ console.log(`wrote ${dest}`);
 console.log(`refresh_token fingerprint ${fingerprint}`);
 console.log(`MCP_AUTH_TOKEN ${mcpToken}`);
 console.log(`
+不必先导入也能部署：只放 OAuth client id/secret，打开网站 Sign in with Google。
+
 Cloudflare:
   npx wrangler login
-  npx wrangler secret put AGY_REFRESH_TOKEN   # paste the refresh token
-  npx wrangler secret put MCP_AUTH_TOKEN      # ${mcpToken}
   npx wrangler secret put AGY_OAUTH_CLIENT_ID
   npx wrangler secret put AGY_OAUTH_CLIENT_SECRET
+  npx wrangler secret put MCP_AUTH_TOKEN      # ${mcpToken}
   npx wrangler deploy
+  # 可选：登录页复制 refresh_token 后再
+  # npx wrangler secret put AGY_REFRESH_TOKEN
 
 Vercel:
-  npx vercel env add AGY_REFRESH_TOKEN
-  npx vercel env add MCP_AUTH_TOKEN
   npx vercel env add AGY_OAUTH_CLIENT_ID
   npx vercel env add AGY_OAUTH_CLIENT_SECRET
+  npx vercel env add MCP_AUTH_TOKEN
   npx vercel --prod
 
 Grok (after deploy, replace URL):
 [mcp_servers.agy-web-search]
 url = "https://agy-web-search-mcp.<subdomain>.workers.dev/mcp"
-headers = { Authorization = "Bearer ${mcpToken}" }
+headers = { Authorization = "Bearer ${mcpToken}", "X-Agy-Refresh-Token" = "\${AGY_REFRESH_TOKEN}" }
 `);
 
 function parseVars(text: string): Record<string, string> {

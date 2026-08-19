@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/", "destination": "/api/mcp" },
     { "source": "/mcp", "destination": "/api/mcp" },
-    { "source": "/health", "destination": "/api/mcp" }
+    { "source": "/health", "destination": "/api/mcp" },
+    { "source": "/oauth/:path*", "destination": "/api/mcp" }
   ]
 }

@@ -36,7 +36,7 @@ export async function getAccessToken(session: RequestSession, env: AppEnv = {}):
   if (session.accessToken && !session.accessToken.startsWith("1//")) {
     return session.accessToken;
   }
-  throw new Error("no Google session: set AGY_REFRESH_TOKEN or run bun run import-agy");
+  throw new Error("no Google session: open / and sign in with Google, or set AGY_REFRESH_TOKEN");
 }
 
 export function invalidateAccessToken(session: RequestSession): void {

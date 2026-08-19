@@ -2,7 +2,7 @@ import type { AppEnv, RequestSession } from "./types.ts";
 import { searchWeb } from "./search.ts";
 
 export const SERVER_NAME = "agy-web-search";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_VERSION = "0.3.1";
 const SUPPORTED = new Set(["2024-11-05", "2025-03-26", "2025-06-18", "2026-07-28"]);
 
 export type RpcRequest = {

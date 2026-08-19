@@ -3,6 +3,7 @@ export type AppEnv = {
   AGY_ACCESS_TOKEN?: string;
   AGY_OAUTH_CLIENT_ID?: string;
   AGY_OAUTH_CLIENT_SECRET?: string;
+  AGY_OAUTH_REDIRECT_URI?: string;
   AGY_SEARCH_PROJECT?: string;
   AGY_SEARCH_MODEL?: string;
   AGY_SEARCH_ENDPOINT?: string;

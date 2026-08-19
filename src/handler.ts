@@ -1,7 +1,28 @@
 import type { AppEnv, RequestSession } from "./types.ts";
 import { sessionFromRequest } from "./session.ts";
-import { handleRpc, isNotification, SERVER_NAME, SERVER_VERSION, type RpcRequest } from "./mcp.ts";
-import { landingHtml } from "./page.ts";
+import {
+  extractQuery,
+  handleRpc,
+  isNotification,
+  SERVER_NAME,
+  SERVER_VERSION,
+  type RpcRequest,
+  type RpcResponse,
+} from "./mcp.ts";
+import { landingHtml, oauthErrorHtml, oauthSuccessHtml, oauthWaitHtml } from "./page.ts";
+import { metricsSnapshot, recordAuthFail, recordCall } from "./metrics.ts";
+import {
+  assertState,
+  buildAuthUrl,
+  clearPendingCookie,
+  createPending,
+  exchangeCode,
+  oauthIsManual,
+  oauthRedirectUri,
+  parseCallbackInput,
+  pendingCookie,
+  readPending,
+} from "./oauth.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -33,18 +54,31 @@ export async function handleRequest(
           version: SERVER_VERSION,
           session: session.source,
           authRequired: Boolean(env.MCP_AUTH_TOKEN),
+          metrics: metricsSnapshot(),
         },
         200,
       );
     }
-    return new Response(
+    return html(
       landingHtml({
         session: session.source,
         authRequired: Boolean(env.MCP_AUTH_TOKEN),
         origin: url.origin,
+        oauthReady: Boolean(env.AGY_OAUTH_CLIENT_ID && env.AGY_OAUTH_CLIENT_SECRET),
+        oauthManual: oauthIsManual(url.origin, env),
+        metrics: metricsSnapshot(),
       }),
-      { status: 200, headers: { ...CORS, "Content-Type": "text/html; charset=utf-8" } },
     );
+  }
+
+  if (path === "/oauth/login" && req.method === "GET") {
+    return startOauth(url, env);
+  }
+  if (path === "/oauth/callback" && req.method === "GET") {
+    return finishOauth(req, url, env, url.search);
+  }
+  if (path === "/oauth/complete" && req.method === "POST") {
+    return finishOauthPosted(req, url, env);
   }
 
   if (req.method === "GET" && path === "/mcp") {
@@ -74,7 +108,7 @@ export async function handleRequest(
       const out = [];
       for (const item of requests) {
         if (isNotificationOrResponse(item)) continue;
-        out.push(await handleRpc(item, env, session));
+        out.push(await invokeRpc(item, env, session));
       }
       return json(out, 200);
     }
@@ -83,7 +117,7 @@ export async function handleRequest(
     if (isNotificationOrResponse(msg)) {
       return new Response(null, { status: 202, headers: CORS });
     }
-    const result = await handleRpc(msg, env, session);
+    const result = await invokeRpc(msg, env, session);
     return json(result, 200);
   }
 
@@ -103,7 +137,34 @@ function checkAuth(req: Request, env: AppEnv): Response | null {
   const got = req.headers.get("authorization") ?? "";
   const token = got.toLowerCase().startsWith("bearer ") ? got.slice(7).trim() : "";
   if (token && timingSafeEqual(token, expected)) return null;
+  recordAuthFail();
   return json({ error: "unauthorized" }, 401);
+}
+
+async function invokeRpc(req: RpcRequest, env: AppEnv, session: RequestSession): Promise<RpcResponse> {
+  const t0 = Date.now();
+  const result = await handleRpc(req, env, session);
+  if (req.method === "tools/call") recordToolCall(req, result, Date.now() - t0);
+  return result;
+}
+
+function recordToolCall(req: RpcRequest, result: RpcResponse, ms: number): void {
+  const params = (req.params ?? {}) as { name?: string; arguments?: unknown };
+  let query: string | undefined;
+  try {
+    query = extractQuery(params.arguments);
+  } catch {
+    query = undefined;
+  }
+  const toolError = result.result as { isError?: boolean; content?: Array<{ text?: string }> } | undefined;
+  const failed = Boolean(result.error) || Boolean(toolError?.isError);
+  recordCall({
+    ok: !failed,
+    ms,
+    tool: params.name || "unknown",
+    query,
+    error: result.error?.message || (failed ? toolError?.content?.[0]?.text : undefined),
+  });
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -122,4 +183,69 @@ function json(data: unknown, status: number): Response {
     status,
     headers: { ...CORS, "Content-Type": "application/json" },
   });
+}
+
+function html(body: string, status = 200, extra: Record<string, string> = {}): Response {
+  return new Response(body, {
+    status,
+    headers: { ...CORS, "Content-Type": "text/html; charset=utf-8", ...extra },
+  });
+}
+
+async function startOauth(url: URL, env: AppEnv): Promise<Response> {
+  try {
+    const pending = await createPending(oauthRedirectUri(url.origin, env));
+    const authUrl = await buildAuthUrl(pending, env);
+    const cookie = await pendingCookie(pending, env, url.protocol === "https:");
+    if (oauthIsManual(url.origin, env)) {
+      return html(oauthWaitHtml({ authUrl }), 200, { "Set-Cookie": cookie });
+    }
+    return new Response(null, {
+      status: 302,
+      headers: { ...CORS, Location: authUrl, "Set-Cookie": cookie },
+    });
+  } catch (err) {
+    return html(oauthErrorHtml(err instanceof Error ? err.message : String(err)), 400);
+  }
+}
+
+async function finishOauthPosted(req: Request, url: URL, env: AppEnv): Promise<Response> {
+  const form = await req.formData().catch(() => null);
+  const raw = String(form?.get("callback") ?? "");
+  return finishOauth(req, url, env, raw);
+}
+
+async function finishOauth(req: Request, url: URL, env: AppEnv, raw: string): Promise<Response> {
+  const secure = url.protocol === "https:";
+  try {
+    const pending = await readPending(req, env);
+    if (!pending) throw new Error("oauth session expired; start again from /oauth/login");
+    const parsed = parseCallbackInput(raw.trim() || url.href);
+    assertState(pending, parsed.state);
+    const tokens = await exchangeCode(parsed.code, pending, env);
+    return html(
+      oauthSuccessHtml({
+        origin: url.origin,
+        authRequired: Boolean(env.MCP_AUTH_TOKEN),
+        refreshToken: tokens.refreshToken,
+        email: tokens.email,
+      }),
+      200,
+      { "Set-Cookie": clearPendingCookie(secure) },
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (oauthIsManual(url.origin, env)) {
+      try {
+        const pending = await readPending(req, env);
+        if (pending) {
+          const authUrl = await buildAuthUrl(pending, env);
+          return html(oauthWaitHtml({ authUrl, error: message }), 400);
+        }
+      } catch {
+        // fall through to generic error
+      }
+    }
+    return html(oauthErrorHtml(message), 400, { "Set-Cookie": clearPendingCookie(secure) });
+  }
 }
