@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { extractQuery, handleRpc, searchToolDef } from "./mcp.ts";
+import { extractQuery, formatImageResultText, generateImageToolDef, handleRpc, searchToolDef } from "./mcp.ts";
 import { handleRequest } from "./handler.ts";
 
 describe("mcp protocol", () => {
@@ -9,6 +9,7 @@ describe("mcp protocol", () => {
     const list = await handleRpc({ jsonrpc: "2.0", id: 2, method: "tools/list" }, {}, { source: "missing" });
     expect(JSON.stringify(list.result)).toContain("search_web");
     expect(JSON.stringify(list.result)).toContain("generate_image");
+    expect(generateImageToolDef().description).toContain("MUST download");
     expect(searchToolDef().inputSchema.required).toContain("query");
   });
 
@@ -25,6 +26,20 @@ describe("mcp protocol", () => {
     );
     expect((resp.result as { isError?: boolean } | undefined)?.isError).toBe(true);
     expect(JSON.stringify(resp.result)).toContain("no Google session");
+  });
+
+  test("image result tells the agent to save locally", () => {
+    const text = formatImageResultText({
+      name: "cute_pig_eating.jpg",
+      bytes: 12,
+      mimeType: "image/jpeg",
+      aspectRatio: "1:1",
+      model: "gemini-3.1-flash-image",
+      downloadUrl: "https://example.workers.dev/files/abc/cute_pig_eating.jpg",
+    });
+    expect(text).toContain("curl -L --fail -o cute_pig_eating.jpg");
+    expect(text).toContain("必须把图片下载到用户当前工作目录");
+    expect(text).toContain("Do not only paste the URL");
   });
 
   test("extractQuery", () => {

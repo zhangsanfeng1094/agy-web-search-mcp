@@ -30,6 +30,11 @@ describe("browser session storage", () => {
     expect(html).toContain("https://example.workers.dev/mcp");
     expect(html).toContain("search_web");
     expect(html).toContain("generate_image");
+    expect(html).toContain("<h2>工具</h2>");
+    expect(html).toContain("query");
+    expect(html).toContain("image_name");
+    expect(html).toContain("aspect_ratio");
+    expect(html).toContain("必填");
   });
 
   test("agent prompt includes url, tool, and tokens", () => {
@@ -41,6 +46,8 @@ describe("browser session storage", () => {
     expect(text).toContain("Streamable HTTP");
     expect(text).toContain("https://example.workers.dev/mcp");
     expect(text).toContain("search_web");
+    expect(text).toContain("curl -L --fail -o");
+    expect(text).toContain("禁止只贴远程链接");
     expect(text).toContain("1//tok");
     expect(text).toContain("X-Agy-Refresh-Token");
     expect(text).toContain("MCP_AUTH_TOKEN");

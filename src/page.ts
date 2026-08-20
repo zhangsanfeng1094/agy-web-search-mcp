@@ -1,4 +1,4 @@
-import { SERVER_NAME, SERVER_VERSION } from "./mcp.ts";
+import { generateImageToolDef, searchToolDef, SERVER_NAME, SERVER_VERSION } from "./mcp.ts";
 import type { MetricsSnapshot } from "./metrics.ts";
 import type { SessionSource } from "./types.ts";
 
@@ -29,6 +29,13 @@ const CSS = `
   td.q { word-break: break-word; }
   .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 28px 0 8px; }
   .row h2 { margin: 0; }
+  .tool { background: #1c1c1c; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px 16px; margin: 10px 0; }
+  .tool h3 { font: 620 14px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0 0 6px; }
+  .tool .summary { margin: 0 0 10px; }
+  .param { margin: 8px 0 0; }
+  .param .k { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .req { color: #f28b82; font-size: 12px; }
+  .opt { color: #9aa0a6; font-size: 12px; }
 `;
 
 export const SESSION_STORAGE_KEY = "agy-web-search-session";
@@ -68,6 +75,7 @@ export function landingHtml(opts: {
 <p class="muted">Streamable HTTP MCP · ${SERVER_VERSION}</p>
 <p>Session: <span id="session-status" data-source="${opts.session}" class="${opts.session === "missing" ? "bad" : "ok"}">${escapeHtml(sessionLabel)}</span></p>
 <p>MCP endpoint: <code>${escapeHtml(opts.origin)}/mcp</code>${opts.authRequired ? " · Bearer token required" : ""}</p>
+${toolsHtml()}
 ${metricsHtml(opts.metrics)}
 <div id="login-section">
 <h2 id="login-title">用 Google 登录拿 session</h2>
@@ -150,6 +158,53 @@ export function oauthErrorHtml(message: string): string {
 <p class="bad">${escapeHtml(message)}</p>
 <p><a class="btn" href="/oauth/login">重试</a> <a class="btn ghost" href="/">返回</a></p>
 </html>`;
+}
+
+const TOOL_COPY: Record<string, { summary: string; params: Record<string, string>; returns: string }> = {
+  search_web: {
+    summary: "用 agy 的 Google session 做实时网页搜索。适合新闻、近况、需要出处的事实。",
+    params: {
+      query: "搜索词。需要时带上日期或地区。",
+    },
+    returns: "一段带引用的文本：摘要、实际搜索词、来源链接。",
+  },
+  generate_image: {
+    summary: "用 agy 的生图模型画图或改图。适合 UI 稿、图标、素材。画界面时不要加手机/电脑外框，除非用户明确要。",
+    params: {
+      prompt: "要画什么，或怎么改参考图。",
+      image_name: "保存用的短文件名，小写加下划线，最多约 3 个词，例如 login_page_mockup。",
+      aspect_ratio: "画幅。默认 1:1。",
+      image_urls: "最多 3 张 http(s) 参考图，用来编辑、拼接或当参考。",
+    },
+    returns: "图片文件 + 短时下载地址。Agent 必须立刻 curl/下载到用户本地工作目录，禁止只贴 URL。",
+  },
+};
+
+function toolsHtml(): string {
+  const cards = [searchToolDef(), generateImageToolDef()].map(toolCard).join("");
+  return `<h2>工具</h2>
+<p class="muted">连上 <code>/mcp</code> 后 Agent 可以调用这两个工具，都走同一套 Google session。</p>
+${cards}`;
+}
+
+function toolCard(def: ReturnType<typeof searchToolDef>): string {
+  const copy = TOOL_COPY[def.name];
+  const required = new Set(def.inputSchema.required ?? []);
+  const props = def.inputSchema.properties as Record<string, { description?: string; enum?: string[] }>;
+  const params = Object.entries(props)
+    .map(([name, prop]) => {
+      const desc = copy?.params[name] || prop.description || "";
+      const enumHint = prop.enum?.length ? `可选值：${prop.enum.join(" / ")}。` : "";
+      const badge = required.has(name) ? `<span class="req">必填</span>` : `<span class="opt">可选</span>`;
+      return `<div class="param"><div class="k"><code>${escapeHtml(name)}</code>${badge}</div><div class="muted">${escapeHtml(desc)} ${escapeHtml(enumHint)}</div></div>`;
+    })
+    .join("");
+  return `<div class="tool">
+<h3>${escapeHtml(def.name)}</h3>
+<p class="summary">${escapeHtml(copy?.summary || def.description)}</p>
+${params}
+<p class="muted">返回：${escapeHtml(copy?.returns || "")}</p>
+</div>`;
 }
 
 function metricsHtml(m: MetricsSnapshot): string {
@@ -304,7 +359,7 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       "名称：agy-web-search",
       "传输：Streamable HTTP",
       "端点：" + origin + "/mcp",
-      "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片文件",
+      "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片。返回后必须立刻把图片下载到用户当前工作目录（curl -L --fail -o <文件名> <Download URL>），禁止只贴远程链接。",
       "",
       grokClientSnippet(origin, authRequired, refreshToken)
     ];
@@ -332,7 +387,7 @@ export function agentConfigPrompt(opts: {
     "名称：agy-web-search",
     "传输：Streamable HTTP",
     `端点：${opts.origin}/mcp`,
-    "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片文件",
+    "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片。返回后必须立刻把图片下载到用户当前工作目录（curl -L --fail -o <文件名> <Download URL>），禁止只贴远程链接。",
     "",
     grokSnippet(opts.origin, opts.authRequired, opts.refreshToken),
   ];
