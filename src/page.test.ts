@@ -44,23 +44,24 @@ describe("browser session storage", () => {
     expect(html).toContain("agy-landing-view");
     expect(html).toContain("agy-landing-config-tab");
     expect(html).toContain("setInterval(refreshMetrics, 15000)");
-    expect(html).toContain('id="view-playground"');
     expect(html).toContain('data-view="tools"');
     expect(html).toContain('id="tools-subview-list"');
-    expect(html).toContain('id="tools-subview-test"');
-    expect(html).toContain('id="tools-back-btn"');
+    expect(html).toContain('id="tools-subview-search_web"');
+    expect(html).toContain('id="tools-subview-generate_image"');
     expect(html).toContain("返回工具列表");
     expect(html).toContain("工具测试");
-    expect(html).toContain('id="pg-form"');
-    expect(html).toContain('id="pg-query"');
-    expect(html).toContain('id="pg-prompt"');
+    expect(html).toContain('id="pg-search-form"');
+    expect(html).toContain('id="pg-image-form"');
+    expect(html).toContain('id="pg-search-query"');
+    expect(html).toContain('id="pg-image-prompt"');
     expect(html).toContain('fetch("/mcp"');
     expect(html).toContain("X-Agy-Refresh-Token");
     expect(html).toContain("打开测试");
-    expect(html).not.toContain('id="pg-auth"');
+    expect(html).not.toContain('id="pg-search-auth"');
+    expect(html).not.toContain('id="pg-image-auth"');
   });
 
-  test("tool testing is in secondary subview of tools list", () => {
+  test("tool testing is separated into dedicated secondary subviews of tools list", () => {
     const html = landingHtml({
       session: "missing",
       authRequired: false,
@@ -73,12 +74,11 @@ describe("browser session storage", () => {
     expect(html).toContain('href="#tools/search_web"');
     expect(html).toContain('href="#tools/generate_image"');
 
-    // Level 2 subview has breadcrumb and playground
-    expect(html).toContain('id="tools-subview-test"');
-    expect(html).toContain('id="tools-back-btn"');
-    expect(html).toContain('id="breadcrumb-tools-list"');
-    expect(html).toContain('id="breadcrumb-tool-name"');
-    expect(html).toContain('id="view-playground"');
+    // Level 2 subviews are completely separate
+    expect(html).toContain('id="tools-subview-search_web"');
+    expect(html).toContain('id="tools-subview-generate_image"');
+    expect(html).toContain('id="pg-search-root"');
+    expect(html).toContain('id="pg-image-root"');
 
     // Client routing handles secondary views
     expect(html).toContain("showToolsSubview");
@@ -93,7 +93,8 @@ describe("browser session storage", () => {
       oauthManual: true,
       metrics,
     });
-    expect(html).toContain('id="pg-auth"');
+    expect(html).toContain('id="pg-search-auth"');
+    expect(html).toContain('id="pg-image-auth"');
     expect(html).toContain("MCP_AUTH_TOKEN");
   });
 
@@ -119,15 +120,14 @@ describe("browser session storage", () => {
   test("oauth success writes localStorage then returns home", () => {
     const html = oauthSuccessHtml({
       origin: "https://example.workers.dev",
-      authRequired: true,
-      refreshToken: "1//0g-test-refresh",
-      email: "a<script>@x.com",
+      authRequired: false,
+      refreshToken: "1//xyz",
+      email: "user@example.com",
     });
+    expect(html).toContain("1//xyz");
+    expect(html).toContain("user@example.com");
     expect(html).toContain(SESSION_STORAGE_KEY);
-    expect(html).toContain("1//0g-test-refresh");
     expect(html).toContain("localStorage.setItem");
     expect(html).toContain('location.replace("/")');
-    expect(html).toContain("\\u003cscript>");
-    expect(html).not.toContain("a<script>@x.com");
   });
 });

@@ -1,6 +1,12 @@
 import { generateImageToolDef, searchToolDef, SERVER_NAME, SERVER_VERSION } from "./mcp.ts";
 import type { MetricsSnapshot } from "./metrics.ts";
-import { PLAYGROUND_CSS, playgroundClientJs, playgroundHtml } from "./playground.ts";
+import {
+  imagePlaygroundHtml,
+  PLAYGROUND_CSS,
+  playgroundClientJs,
+  playgroundHtml,
+  searchPlaygroundHtml,
+} from "./playground.ts";
 import type { SessionSource } from "./types.ts";
 
 const CSS = `
@@ -1244,7 +1250,7 @@ export function landingHtml(opts: {
         </section>
       </div>
 
-      <!-- View 2: Tools (Primary: List, Secondary: Test / Playground) -->
+      <!-- View 2: Tools (Primary: List, Secondary A: search_web Test, Secondary B: generate_image Test) -->
       <div class="view-panel" id="view-tools">
         <!-- Sub-view 1: Tools List (一级页面) -->
         <div class="tools-subview active" id="tools-subview-list">
@@ -1254,33 +1260,19 @@ export function landingHtml(opts: {
                 <h2>工具</h2>
                 <span class="hint-text">连上 <code>/mcp</code> 后 Agent 可调用的 2 个工具</span>
               </div>
-              <a class="btn ghost" href="#tools/search_web" data-pg-tool="search_web">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                测试控制台
-              </a>
             </div>
             ${toolsHtml()}
           </section>
         </div>
 
-        <!-- Sub-view 2: Tool Test / Playground (二级页面) -->
-        <div class="tools-subview" id="tools-subview-test">
-          <div class="subpage-header">
-            <div class="subpage-header-left">
-              <a class="btn ghost btn-back" id="tools-back-btn" href="#tools" title="返回工具列表">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                返回工具列表
-              </a>
-              <div class="breadcrumb-trail">
-                <a class="breadcrumb-item" href="#tools" id="breadcrumb-tools-list">工具列表</a>
-                <span class="breadcrumb-sep">/</span>
-                <span class="breadcrumb-current">工具测试 (<code id="breadcrumb-tool-name">search_web</code>)</span>
-              </div>
-            </div>
-          </div>
-          <div id="view-playground">
-            ${playgroundHtml(opts.authRequired)}
-          </div>
+        <!-- Sub-view 2: search_web Dedicated Test (二级页面 A) -->
+        <div class="tools-subview" id="tools-subview-search_web">
+          ${searchPlaygroundHtml(opts.authRequired)}
+        </div>
+
+        <!-- Sub-view 3: generate_image Dedicated Test (二级页面 B) -->
+        <div class="tools-subview" id="tools-subview-generate_image">
+          ${imagePlaygroundHtml(opts.authRequired)}
         </div>
       </div>
 
@@ -1628,34 +1620,37 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
   var VIEW_KEY = "agy-landing-view";
   var TOOLS_SUBVIEW_KEY = "agy-landing-tools-subview";
 
-  function showToolsSubview(subview, toolName) {
+  function showToolsSubview(subview) {
     var listView = document.getElementById("tools-subview-list");
-    var testView = document.getElementById("tools-subview-test");
+    var searchView = document.getElementById("tools-subview-search_web");
+    var imageView = document.getElementById("tools-subview-generate_image");
     var titleEl = document.getElementById("current-view-title");
-    var breadcrumbTool = document.getElementById("breadcrumb-tool-name");
 
-    if (subview === "test") {
+    if (subview === "search_web" || subview === "test") {
       if (listView) listView.classList.remove("active");
-      if (testView) testView.classList.add("active");
-      if (toolName && typeof window.setPgTool === "function") {
-        window.setPgTool(toolName);
-      }
-      var currentTool = (typeof window.getPgTool === "function" ? window.getPgTool() : toolName) || "search_web";
-      if (breadcrumbTool) breadcrumbTool.textContent = currentTool;
-      if (titleEl) titleEl.textContent = "工具测试 · " + currentTool;
-      try { localStorage.setItem(TOOLS_SUBVIEW_KEY, "test"); } catch (e) {}
+      if (imageView) imageView.classList.remove("active");
+      if (searchView) searchView.classList.add("active");
+      if (titleEl) titleEl.textContent = "工具测试 · 网页搜索 (search_web)";
+      try { localStorage.setItem(TOOLS_SUBVIEW_KEY, "search_web"); } catch (e) {}
+    } else if (subview === "generate_image") {
+      if (listView) listView.classList.remove("active");
+      if (searchView) searchView.classList.remove("active");
+      if (imageView) imageView.classList.add("active");
+      if (titleEl) titleEl.textContent = "工具测试 · 生成图片 (generate_image)";
+      try { localStorage.setItem(TOOLS_SUBVIEW_KEY, "generate_image"); } catch (e) {}
     } else {
-      if (testView) testView.classList.remove("active");
+      if (searchView) searchView.classList.remove("active");
+      if (imageView) imageView.classList.remove("active");
       if (listView) listView.classList.add("active");
       if (titleEl) titleEl.textContent = viewTitles.tools;
       try { localStorage.setItem(TOOLS_SUBVIEW_KEY, "list"); } catch (e) {}
     }
   }
 
-  function switchView(viewName, subview, toolName) {
+  function switchView(viewName, subview) {
     if (viewName === "playground") {
       viewName = "tools";
-      subview = "test";
+      subview = "search_web";
     }
     var validViews = ["config", "tools", "metrics"];
     if (validViews.indexOf(viewName) === -1) viewName = "config";
@@ -1683,14 +1678,12 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     // Update topbar title & subviews
     var titleEl = document.getElementById("current-view-title");
     if (viewName === "tools") {
-      if (subview === "test") {
-        showToolsSubview("test", toolName);
-      } else if (subview === "list") {
-        showToolsSubview("list");
+      if (subview) {
+        showToolsSubview(subview);
       } else {
         var savedSub = "list";
         try { savedSub = localStorage.getItem(TOOLS_SUBVIEW_KEY) || "list"; } catch (e) {}
-        showToolsSubview(savedSub, toolName);
+        showToolsSubview(savedSub);
       }
     } else {
       if (titleEl && viewTitles[viewName]) {
@@ -1716,16 +1709,16 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     }
 
     if (rawHash === "playground") {
-      switchView("tools", "test");
+      switchView("tools", "search_web");
       return;
     }
 
     if (rawHash.indexOf("tools/") === 0) {
       var toolName = rawHash.slice(6);
-      if (toolName === "test") {
-        switchView("tools", "test");
+      if (toolName === "generate_image") {
+        switchView("tools", "generate_image");
       } else {
-        switchView("tools", "test", toolName);
+        switchView("tools", "search_web");
       }
       return;
     }

@@ -1,14 +1,97 @@
 import { IMAGE_ASPECT_RATIOS } from "./image.ts";
 
 const AUTH_STORAGE_KEY = "agy-mcp-auth-token";
-const TOOL_STORAGE_KEY = "agy-landing-playground-tool";
+const SEARCH_HISTORY_KEY = "agy-history-search";
+const IMAGE_HISTORY_KEY = "agy-history-image";
 
 export const PLAYGROUND_CSS = `
-  /* Playground Main Container */
-  .pg-container {
+  /* Playground Container */
+  .pg-view-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
+  }
+
+  .subpage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 4px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .subpage-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 550;
+    padding: 6px 12px;
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .btn-back:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-highlight);
+    text-decoration: none;
+    transform: translateX(-2px);
+  }
+
+  .breadcrumb-trail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .breadcrumb-item {
+    color: #818cf8;
+    text-decoration: none;
+    font-weight: 550;
+    cursor: pointer;
+  }
+
+  .breadcrumb-item:hover {
+    text-decoration: underline;
+  }
+
+  .breadcrumb-sep {
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  .breadcrumb-current {
+    color: var(--text-main);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .breadcrumb-current code {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
   }
 
   /* Status Items */
@@ -19,87 +102,6 @@ export const PLAYGROUND_CSS = `
     flex-wrap: wrap;
   }
 
-  /* Tool Selector Segmented Tabs */
-  .pg-tool-tabs {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 12px;
-  }
-  .pg-tool-tab {
-    position: relative;
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    padding: 14px 16px;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .pg-tool-tab:hover {
-    background: rgba(30, 41, 59, 0.6);
-    border-color: var(--border-highlight);
-    transform: translateY(-1px);
-  }
-  .pg-tool-tab.active {
-    background: rgba(99, 102, 241, 0.12);
-    border-color: rgba(99, 102, 241, 0.45);
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-  .pg-tool-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: var(--text-muted);
-    transition: all 0.2s;
-  }
-  .pg-tool-tab.active .pg-tool-icon {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
-    color: #fff;
-    box-shadow: 0 2px 8px var(--primary-glow);
-  }
-  .pg-tool-info {
-    flex: 1;
-    min-width: 0;
-  }
-  .pg-tool-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 3px;
-    gap: 6px;
-  }
-  .pg-tool-title {
-    font-family: var(--font-mono);
-    font-size: 13.5px;
-    font-weight: 650;
-    color: #fff;
-  }
-  .pg-tool-badge {
-    font-size: 10.5px;
-    padding: 1px 6px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-  .pg-tool-tab.active .pg-tool-badge {
-    background: rgba(99, 102, 241, 0.25);
-    color: #c7d2fe;
-  }
-  .pg-tool-desc {
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.4;
-  }
-
   /* Two Column Layout */
   .pg-layout {
     display: grid;
@@ -108,7 +110,7 @@ export const PLAYGROUND_CSS = `
     align-items: start;
   }
 
-  /* Left Panel: Form Card */
+  /* Form Card */
   .pg-card {
     background: rgba(15, 23, 42, 0.7);
     border: 1px solid var(--border-subtle);
@@ -123,26 +125,22 @@ export const PLAYGROUND_CSS = `
     justify-content: space-between;
     align-items: center;
     padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.02);
     border-bottom: 1px solid var(--border-subtle);
-    background: rgba(8, 12, 20, 0.4);
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-muted);
   }
   .pg-card-head-title {
+    font-size: 13px;
+    font-weight: 650;
+    color: #fff;
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #f1f5f9;
   }
   .pg-card-body {
     padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
   }
 
-  /* Form Fields */
+  /* Form Elements */
   .pg-form {
     display: flex;
     flex-direction: column;
@@ -155,11 +153,11 @@ export const PLAYGROUND_CSS = `
   }
   .pg-field-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    justify-content: space-between;
   }
-  .pg-field-head label {
+  .pg-field label {
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-main);
     display: flex;
@@ -167,36 +165,33 @@ export const PLAYGROUND_CSS = `
     gap: 6px;
   }
   .pg-tag-req {
-    font-size: 10px;
-    font-weight: 600;
-    color: #f87171;
-    background: rgba(244, 63, 94, 0.12);
-    border: 1px solid rgba(244, 63, 94, 0.25);
+    font-size: 10.5px;
+    color: #f43f5e;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
     padding: 1px 5px;
     border-radius: 4px;
   }
   .pg-tag-opt {
-    font-size: 10px;
-    font-weight: 500;
+    font-size: 10.5px;
     color: var(--text-dim);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
     padding: 1px 5px;
     border-radius: 4px;
   }
-  .pg-field input[type="text"],
-  .pg-field input[type="password"],
+
+  .pg-field input,
   .pg-field select,
   .pg-form textarea {
     width: 100%;
     background: var(--code-bg);
-    color: var(--text-main);
     border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-family: var(--font-sans);
+    color: var(--text-main);
     font-size: 13px;
+    border-radius: 8px;
+    padding: 9px 12px;
     outline: none;
-    margin: 0;
     transition: all 0.15s;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
   }
@@ -322,9 +317,11 @@ export const PLAYGROUND_CSS = `
     color: #fff;
   }
   .pg-drop-icon {
+    width: 28px;
+    height: 28px;
     color: #818cf8;
   }
-  .pg-files {
+  .pg-files-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -332,20 +329,17 @@ export const PLAYGROUND_CSS = `
   .pg-file {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-  .pg-file img {
-    width: 34px;
-    height: 34px;
-    object-fit: cover;
     border-radius: 6px;
-    background: #000;
-    border: 1px solid var(--border-subtle);
+    padding: 4px 8px;
+  }
+  .pg-file .thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    object-fit: cover;
   }
   .pg-file .name {
     flex: 1;
@@ -396,7 +390,7 @@ export const PLAYGROUND_CSS = `
     background: rgba(0, 0, 0, 0.2);
   }
 
-  /* Right Panel: Result Console */
+  /* Result Console */
   .pg-console {
     background: var(--code-bg);
     border: 1px solid var(--border-subtle);
@@ -497,9 +491,9 @@ export const PLAYGROUND_CSS = `
     justify-content: center;
     text-align: center;
     padding: 60px 20px;
+    margin: auto 0;
     color: var(--text-dim);
     gap: 12px;
-    flex: 1;
   }
   .pg-empty-icon {
     width: 48px;
@@ -511,7 +505,6 @@ export const PLAYGROUND_CSS = `
     align-items: center;
     justify-content: center;
     color: var(--text-dim);
-    margin-bottom: 4px;
   }
   .pg-empty-title {
     font-size: 14px;
@@ -519,8 +512,8 @@ export const PLAYGROUND_CSS = `
     color: var(--text-muted);
   }
   .pg-empty-desc {
-    font-size: 12.5px;
-    max-width: 320px;
+    font-size: 12px;
+    max-width: 280px;
     line-height: 1.5;
   }
 
@@ -531,14 +524,13 @@ export const PLAYGROUND_CSS = `
     align-items: center;
     justify-content: center;
     padding: 60px 20px;
-    gap: 16px;
-    color: var(--text-muted);
-    flex: 1;
+    margin: auto 0;
+    gap: 14px;
   }
   .pg-spinner {
     width: 36px;
     height: 36px;
-    border: 3px solid rgba(99, 102, 241, 0.2);
+    border: 3px solid rgba(99, 102, 241, 0.15);
     border-top-color: #6366f1;
     border-radius: 50%;
     animation: pgSpin 0.8s linear infinite;
@@ -550,101 +542,72 @@ export const PLAYGROUND_CSS = `
     font-family: var(--font-mono);
     font-size: 13px;
     color: #818cf8;
-    background: rgba(99, 102, 241, 0.12);
-    padding: 3px 10px;
-    border-radius: 9999px;
-    border: 1px solid rgba(99, 102, 241, 0.25);
+    background: rgba(99, 102, 241, 0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
   }
 
-  /* Rendered Content Styles */
+  /* Markdown & Output Styles */
   .md-content {
     font-size: 13.5px;
     line-height: 1.7;
     color: #e2e8f0;
   }
-  .md-content .md-p {
+  .md-content p {
     margin-bottom: 12px;
   }
-  .md-content h1, .md-content .md-h1 {
-    font-size: 18px;
-    font-weight: 700;
+  .md-content p:last-child {
+    margin-bottom: 0;
+  }
+  .md-content h1, .md-content h2, .md-content h3, .md-content h4 {
     color: #fff;
-    margin: 18px 0 10px;
-    border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: 6px;
-  }
-  .md-content h2, .md-content .md-h2 {
-    font-size: 16px;
     font-weight: 650;
-    color: #f1f5f9;
     margin: 16px 0 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    padding-bottom: 4px;
   }
-  .md-content h3, .md-content .md-h3 {
-    font-size: 14.5px;
-    font-weight: 600;
-    color: #e2e8f0;
-    margin: 14px 0 6px;
-  }
-  .md-content .md-ul, .md-content .md-ol {
+  .md-content h1 { font-size: 18px; }
+  .md-content h2 { font-size: 16px; }
+  .md-content h3 { font-size: 14.5px; }
+  .md-content ul, .md-content ol {
     margin: 8px 0 14px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
   }
-  .md-content .md-li, .md-content .md-oli {
-    color: #cbd5e1;
+  .md-content li {
+    margin-bottom: 4px;
   }
-  .md-content .md-inline-code {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 6px;
+  .md-inline-code {
     background: rgba(255, 255, 255, 0.08);
-    color: #38bdf8;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  .md-content .md-link {
-    color: #818cf8;
-    text-decoration: none;
-    border-bottom: 1px dashed rgba(129, 140, 248, 0.5);
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-  }
-  .md-content .md-link:hover {
     color: #a5b4fc;
-    border-bottom-style: solid;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
   }
-  .md-content .ext-icon {
+  .md-link {
+    color: #38bdf8;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    word-break: break-all;
+  }
+  .md-link:hover {
+    color: #7dd3fc;
+  }
+  .md-link .ext-icon {
     font-size: 10px;
-    opacity: 0.8;
+    margin-left: 2px;
   }
-  .md-content .md-quote {
+  .md-quote {
     border-left: 3px solid #6366f1;
+    padding: 6px 12px;
+    margin: 10px 0;
     background: rgba(99, 102, 241, 0.06);
-    padding: 8px 14px;
-    border-radius: 0 8px 8px 0;
-    margin: 12px 0;
     color: #cbd5e1;
-    font-style: italic;
+    border-radius: 0 6px 6px 0;
   }
-  .md-content .md-hr {
-    border: 0;
-    height: 1px;
-    background: var(--border-subtle);
-    margin: 16px 0;
-  }
-
-  /* Code Blocks */
   .md-code-card {
-    background: #060911;
     border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    margin: 12px 0;
+    border-radius: 8px;
     overflow: hidden;
+    margin: 12px 0;
+    background: #060911;
   }
   .md-code-head {
     display: flex;
@@ -653,38 +616,36 @@ export const PLAYGROUND_CSS = `
     padding: 6px 12px;
     background: rgba(255, 255, 255, 0.03);
     border-bottom: 1px solid var(--border-subtle);
-    font-size: 11px;
-    font-family: var(--font-mono);
+    font-size: 11.5px;
     color: var(--text-dim);
   }
-  .md-code-head button {
+  .btn-copy-code {
     background: transparent;
     border: 0;
     color: var(--text-muted);
-    cursor: pointer;
     font-size: 11px;
+    cursor: pointer;
     padding: 2px 6px;
     border-radius: 4px;
   }
-  .md-code-head button:hover {
+  .btn-copy-code:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.1);
   }
   .md-code-body {
-    padding: 12px 14px;
+    padding: 12px;
     overflow-x: auto;
     font-family: var(--font-mono);
     font-size: 12px;
-    line-height: 1.55;
     color: #f1f5f9;
   }
 
-  /* Image Results */
+  /* Generated Image Grid & Preview Card */
   .pg-images-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
-    margin-top: 16px;
+    margin-top: 14px;
   }
   .pg-img-card {
     background: rgba(15, 23, 42, 0.8);
@@ -693,109 +654,105 @@ export const PLAYGROUND_CSS = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s, border-color 0.2s;
   }
   .pg-img-card:hover {
-    border-color: #818cf8;
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-color: var(--border-highlight);
   }
   .pg-img-preview {
     position: relative;
-    aspect-ratio: 1 / 1;
     background: #000;
-    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 240px;
+    overflow: hidden;
   }
   .pg-img-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.25s ease;
-  }
-  .pg-img-card:hover .pg-img-preview img {
-    transform: scale(1.03);
+    max-width: 100%;
+    max-height: 480px;
+    object-fit: contain;
+    display: block;
   }
   .pg-img-meta {
-    padding: 10px 12px;
+    padding: 10px 14px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
     border-top: 1px solid var(--border-subtle);
-    background: rgba(8, 12, 20, 0.6);
   }
   .pg-img-badge {
     font-size: 11px;
-    font-family: var(--font-mono);
     color: var(--text-muted);
+    font-family: var(--font-mono);
   }
   .pg-img-actions {
     display: flex;
     gap: 6px;
   }
   .pg-img-btn {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-subtle);
     color: var(--text-main);
+    font-size: 11.5px;
+    padding: 3px 8px;
     border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 11px;
-    text-decoration: none;
     cursor: pointer;
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 4px;
     transition: all 0.15s;
   }
   .pg-img-btn:hover {
-    background: #6366f1;
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.4);
     color: #fff;
-    border-color: #6366f1;
+    text-decoration: none;
   }
 
-  /* JSON Syntax Highlighting */
+  /* Raw JSON output */
   .pg-json-view {
+    background: #060911;
+    border-radius: 8px;
+    padding: 14px;
+    overflow-x: auto;
     font-family: var(--font-mono);
     font-size: 12px;
-    line-height: 1.6;
-    color: #f1f5f9;
-    background: #060911;
-    padding: 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border-subtle);
-    overflow: auto;
-    max-height: 560px;
+    line-height: 1.5;
+    color: #94a3b8;
   }
   .json-key { color: #38bdf8; }
-  .json-string { color: #a7f3d0; }
-  .json-number { color: #fbcfe8; }
-  .json-boolean { color: #fde68a; }
-  .json-null { color: #94a3b8; }
+  .json-string { color: #34d399; }
+  .json-number { color: #f59e0b; }
+  .json-boolean { color: #a78bfa; }
+  .json-null { color: #f43f5e; }
 
-  /* Execution History */
+  /* History Card */
   .pg-history-card {
     background: rgba(15, 23, 42, 0.5);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 14px 18px;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
   .pg-history-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     font-size: 12px;
-    color: var(--text-muted);
     font-weight: 600;
+    color: var(--text-muted);
   }
   .pg-history-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
   .pg-hist-item {
     font-size: 11.5px;
@@ -837,67 +794,44 @@ export const PLAYGROUND_CSS = `
   }
 `;
 
-export function playgroundHtml(authRequired: boolean): string {
-  const ratios = IMAGE_ASPECT_RATIOS.map(
-    (r) => `<option value="${r}"${r === "1:1" ? " selected" : ""}>${r}</option>`,
-  ).join("");
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
+export function searchPlaygroundHtml(authRequired: boolean): string {
   const authField = authRequired
     ? `<div class="pg-field">
         <div class="pg-field-head">
-          <label for="pg-auth">MCP_AUTH_TOKEN <span class="pg-tag-req">Bearer 保护</span></label>
+          <label for="pg-search-auth">MCP_AUTH_TOKEN <span class="pg-tag-req">Bearer 保护</span></label>
           <span class="pg-help">仅存本地浏览器</span>
         </div>
-        <input id="pg-auth" type="password" autocomplete="off" placeholder="输入部署时设定的 MCP_AUTH_TOKEN">
+        <input id="pg-search-auth" class="pg-auth-input" type="password" autocomplete="off" placeholder="输入部署时设定的 MCP_AUTH_TOKEN">
         <p class="pg-help">用于 /mcp 请求鉴权，不会上报至第三方。</p>
       </div>`
     : "";
 
-  return `<div class="pg-container">
-    <!-- Header Card -->
-    <div class="section-card" style="margin-bottom: 0;">
-      <div class="card-header" style="margin-bottom: 12px;">
-        <h2>
-          <span class="section-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          </span>
-          工具测试与调试控制台
-        </h2>
-        <div class="pg-status-items">
-          <span class="status-pill ok" id="pg-session-pill"><span class="pulse-dot"></span>Google Session</span>
-          <span class="endpoint-pill"><span class="method">POST</span> /mcp</span>
+  return `<div class="pg-view-wrapper" id="pg-search-root">
+    <!-- Subpage Navigation Header -->
+    <div class="subpage-header">
+      <div class="subpage-header-left">
+        <a class="btn ghost btn-back" href="#tools" title="返回工具列表">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          返回工具列表
+        </a>
+        <div class="breadcrumb-trail">
+          <a class="breadcrumb-item" href="#tools">工具列表</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">网页搜索 (<code>search_web</code>)</span>
         </div>
       </div>
-      <p class="hint-text">
-        直接向当前 MCP 服务的 <code>POST /mcp</code> 发送 <code>tools/call</code> JSON-RPC 请求，实时验证搜索检索质量与 Imagen 3 生图效果。
-      </p>
-    </div>
-
-    <!-- Tool Selector Tabs -->
-    <div class="pg-tool-tabs" id="pg-picks">
-      <div class="pg-tool-tab active" data-tool="search_web">
-        <div class="pg-tool-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        </div>
-        <div class="pg-tool-info">
-          <div class="pg-tool-top">
-            <span class="pg-tool-title">search_web</span>
-            <span class="pg-tool-badge">实时网页搜索</span>
-          </div>
-          <div class="pg-tool-desc">Google 联网检索，支持新闻事实与技术文档查询</div>
-        </div>
-      </div>
-      <div class="pg-tool-tab" data-tool="generate_image">
-        <div class="pg-tool-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        </div>
-        <div class="pg-tool-info">
-          <div class="pg-tool-top">
-            <span class="pg-tool-title">generate_image</span>
-            <span class="pg-tool-badge">Imagen 3 绘图</span>
-          </div>
-          <div class="pg-tool-desc">高质量图像生成、比例调整与参考图垫图修改</div>
-        </div>
+      <div class="pg-status-items">
+        <span class="status-pill ok pg-session-pill"><span class="pulse-dot"></span>Google Session</span>
+        <span class="endpoint-pill"><span class="method">POST</span> /mcp</span>
       </div>
     </div>
 
@@ -907,165 +841,291 @@ export function playgroundHtml(authRequired: boolean): string {
       <div class="pg-card">
         <div class="pg-card-head">
           <span class="pg-card-head-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-            请求参数配置
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            搜索参数配置 (search_web)
           </span>
-          <button type="button" class="pg-tool-btn" id="pg-reset-btn" title="清空表单内容">清空重置</button>
+          <button type="button" class="pg-tool-btn" id="pg-search-reset" title="清空输入内容">清空重置</button>
         </div>
         <div class="pg-card-body">
-          <form id="pg-form" class="pg-form" autocomplete="off">
+          <form id="pg-search-form" class="pg-form" autocomplete="off">
             ${authField}
 
-            <!-- search_web fields -->
-            <div id="pg-fields-search_web">
-              <div class="pg-field">
-                <div class="pg-field-head">
-                  <label for="pg-query">搜索查询词 (query) <span class="pg-tag-req">必填</span></label>
-                  <span class="pg-help" id="pg-query-count"></span>
-                </div>
-                <textarea id="pg-query" rows="4" placeholder="输入搜索关键词或问题，例如：2026 年 Cloudflare Workers 免费套餐限制"></textarea>
-                <div class="pg-presets">
-                  <span style="font-size: 11px; color: var(--text-dim); align-self: center; margin-right: 2px;">推荐示例:</span>
-                  <button type="button" class="pg-preset-btn" data-fill-query="2026 年 Cloudflare Workers 免费套餐限制与配额">⚡ Cloudflare 配额</button>
-                  <button type="button" class="pg-preset-btn" data-fill-query="Bun v1.3 新特性与性能对比解析">🚀 Bun 运行时新特性</button>
-                  <button type="button" class="pg-preset-btn" data-fill-query="DeepSeek V3 架构解析与技术报告核心亮点">🧠 DeepSeek V3 架构</button>
-                </div>
+            <div class="pg-field">
+              <div class="pg-field-head">
+                <label for="pg-search-query">搜索查询词 (query) <span class="pg-tag-req">必填</span></label>
+                <span class="pg-help" id="pg-search-query-count"></span>
+              </div>
+              <textarea id="pg-search-query" rows="4" placeholder="输入搜索关键词或问题，例如：2026 年 Cloudflare Workers 免费套餐限制与配额"></textarea>
+              <div class="pg-presets">
+                <span style="font-size: 11px; color: var(--text-dim); align-self: center; margin-right: 2px;">推荐示例:</span>
+                <button type="button" class="pg-preset-btn" data-fill-search-query="2026 年 Cloudflare Workers 免费套餐限制与配额">⚡ Cloudflare 配额</button>
+                <button type="button" class="pg-preset-btn" data-fill-search-query="Bun v1.3 新特性与性能对比解析">🚀 Bun 运行时新特性</button>
+                <button type="button" class="pg-preset-btn" data-fill-search-query="DeepSeek V3 架构解析与技术报告核心亮点">🧠 DeepSeek V3 架构</button>
               </div>
             </div>
 
-            <!-- generate_image fields -->
-            <div id="pg-fields-generate_image" hidden>
-              <div class="pg-field">
-                <div class="pg-field-head">
-                  <label for="pg-prompt">画面描述提示词 (prompt) <span class="pg-tag-req">必填</span></label>
-                </div>
-                <textarea id="pg-prompt" rows="3" placeholder="描述要生成的画面内容、艺术风格、光影色彩细节，或说明如何基于参考图修改"></textarea>
-                <div class="pg-presets">
-                  <span style="font-size: 11px; color: var(--text-dim); align-self: center; margin-right: 2px;">预设灵感:</span>
-                  <button type="button" class="pg-preset-btn" data-fill-prompt="赛博朋克风格未来城市夜景，雨夜霓虹灯反光，电影级光影，8K 超清壁纸">🌆 赛博朋克城市</button>
-                  <button type="button" class="pg-preset-btn" data-fill-prompt="可爱水彩风小猫咪戴着魔法巫师帽，身边漂浮着发光的魔法书，柔和治愈配色">🐱 魔法小猫</button>
-                  <button type="button" class="pg-preset-btn" data-fill-prompt="极简扁平风格太空探索插画，宇航员遥望绚丽星系，科技未来感渐变色">🚀 极简深空</button>
-                </div>
-              </div>
-
-              <div class="pg-field">
-                <div class="pg-field-head">
-                  <label for="pg-aspect">画幅比例 (aspect_ratio) <span class="pg-tag-opt">选填</span></label>
-                  <select id="pg-aspect" style="display: none;">${ratios}</select>
-                </div>
-                <div class="pg-ratio-grid" id="pg-ratio-grid">
-                  <button type="button" class="pg-ratio-btn active" data-ratio="1:1">1:1<span class="ratio-sub">正方形</span></button>
-                  <button type="button" class="pg-ratio-btn" data-ratio="16:9">16:9<span class="ratio-sub">宽幅横屏</span></button>
-                  <button type="button" class="pg-ratio-btn" data-ratio="9:16">9:16<span class="ratio-sub">手机竖屏</span></button>
-                  <button type="button" class="pg-ratio-btn" data-ratio="4:3">4:3<span class="ratio-sub">标准横版</span></button>
-                  <button type="button" class="pg-ratio-btn" data-ratio="3:4">3:4<span class="ratio-sub">海报竖版</span></button>
-                  <button type="button" class="pg-ratio-btn" data-ratio="3:2">3:2<span class="ratio-sub">摄影横幅</span></button>
-                  <button type="button" class="pg-ratio-btn" data-ratio="2:3">2:3<span class="ratio-sub">经典竖幅</span></button>
-                </div>
-              </div>
-
-              <div class="pg-field">
-                <div class="pg-field-head">
-                  <label for="pg-image-name">保存文件名前缀 (image_name) <span class="pg-tag-opt">选填</span></label>
-                </div>
-                <input id="pg-image-name" type="text" placeholder="例如：cyberpunk_city_night">
-              </div>
-
-              <div class="pg-ref-card">
-                <div class="pg-field">
-                  <div class="pg-field-head">
-                    <label>本地参考图上传 (images) <span class="pg-tag-opt">选填，最多 3 张</span></label>
-                    <span class="pg-help" id="pg-file-count">0/3</span>
-                  </div>
-                  <div class="pg-drop" id="pg-drop">
-                    <span class="pg-drop-icon">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    </span>
-                    <span>点击上传或将图片拖拽至此处</span>
-                    <span style="font-size: 11px; color: var(--text-dim);">支持 PNG, JPG, WebP 格式（浏览器自动转为 base64）</span>
-                  </div>
-                  <input id="pg-files" type="file" accept="image/*" multiple hidden>
-                  <div class="pg-files" id="pg-file-list"></div>
-                </div>
-
-                <div class="pg-field" style="margin-top: 4px;">
-                  <div class="pg-field-head">
-                    <label for="pg-image-urls">网络参考图链接 (image_urls) <span class="pg-tag-opt">选填</span></label>
-                  </div>
-                  <textarea id="pg-image-urls" rows="2" placeholder="每行一个 http(s) 链接，可填之前生成的 /files/... 链接"></textarea>
-                </div>
-              </div>
-            </div>
-
-            <!-- Action Row -->
             <div class="pg-run-row">
               <div class="pg-run-left">
-                <button type="submit" class="btn" id="pg-run">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                  <span>运行调用</span>
-                  <span class="btn-shortcut">Ctrl+↵</span>
+                <button type="submit" class="btn" id="pg-search-run" style="padding: 8px 18px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  运行搜索
+                  <span class="btn-shortcut">Ctrl+Enter</span>
                 </button>
-                <button type="button" class="btn danger" id="pg-abort-btn" style="display: none;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>
-                  <span>终止</span>
+                <button type="button" class="btn ghost" id="pg-search-abort" style="display: none; color: #f87171; border-color: rgba(244, 63, 94, 0.3);">
+                  取消请求
                 </button>
               </div>
-              <span class="hint-text" id="pg-run-hint" style="font-family: var(--font-mono); font-size: 12px;"></span>
+              <span class="hint-text" id="pg-search-hint" style="font-size: 12px;">就绪</span>
             </div>
           </form>
         </div>
       </div>
 
-      <!-- Right Panel: Response Console -->
-      <div class="pg-console" id="pg-result">
+      <!-- Right Panel: Result Console -->
+      <div class="pg-console" id="pg-search-console">
         <div class="pg-console-head">
           <div class="pg-console-left">
             <span class="pg-console-title">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-              调试响应结果
+              搜索结果响应
             </span>
-            <span id="pg-result-meta" class="hint-text">尚未调用</span>
+            <span id="pg-search-meta" style="color: var(--text-dim); font-size: 11.5px; font-family: var(--font-mono);">尚未调用</span>
           </div>
           <div class="pg-console-actions">
-            <div class="pg-view-modes" id="pg-view-modes" style="display: none;">
-              <button type="button" class="pg-view-btn active" data-mode="rendered">格式化视图</button>
-              <button type="button" class="pg-view-btn" data-mode="raw">原始 JSON</button>
+            <div class="pg-view-modes" id="pg-search-view-modes" style="display: none;">
+              <button type="button" class="pg-view-btn active" data-search-mode="rendered">Markdown 渲染</button>
+              <button type="button" class="pg-view-btn" data-search-mode="raw">原始 JSON</button>
             </div>
-            <button type="button" class="pg-tool-btn" id="pg-copy-result-btn" title="复制结果" style="display: none;">
+            <button type="button" class="pg-tool-btn" id="pg-search-copy-btn" style="display: none;" title="复制搜索结果">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              <span>复制</span>
+              复制
             </button>
-            <button type="button" class="pg-tool-btn" id="pg-clear-result-btn" title="清空输出">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
+            <button type="button" class="pg-tool-btn" id="pg-search-clear-btn" title="清空控制台">清空</button>
           </div>
         </div>
-        <div class="pg-console-body" id="pg-result-body">
+
+        <div class="pg-console-body" id="pg-search-body">
           <div class="pg-empty-state">
             <div class="pg-empty-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             </div>
-            <div class="pg-empty-title">等待发起工具调用</div>
+            <div class="pg-empty-title">等待发起搜索</div>
             <div class="pg-empty-desc">
-              在左侧配置测试参数，点击「运行调用」或按 <kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px;">Ctrl + Enter</kbd> 即可直接调用 MCP 服务。
+              在左侧输入搜索关键词，点击「运行搜索」或按 <kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px;">Ctrl + Enter</kbd> 即可实时检索。
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Recent Execution History -->
+    <!-- Recent Search History -->
     <div class="pg-history-card">
       <div class="pg-history-head">
         <span style="display: flex; align-items: center; gap: 6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          近期调用记录 (点击可回填参数与结果)
+          近期搜索记录 (点击可回填参数与结果)
         </span>
-        <button type="button" class="pg-tool-btn" id="pg-clear-history-btn" style="display: none;">清空记录</button>
+        <button type="button" class="pg-tool-btn" id="pg-search-clear-history" style="display: none;">清空记录</button>
       </div>
-      <div class="pg-history-list" id="pg-history">
-        <span class="hint-text" style="font-size: 12px; padding: 4px 0;">暂无调试调用记录</span>
+      <div class="pg-history-list" id="pg-search-history">
+        <span class="hint-text" style="font-size: 12px; padding: 4px 0;">暂无搜索调试记录</span>
       </div>
+    </div>
+  </div>`;
+}
+
+export function imagePlaygroundHtml(authRequired: boolean): string {
+  const ratios = IMAGE_ASPECT_RATIOS.map(
+    (r) => `<option value="${r}"${r === "1:1" ? " selected" : ""}>${r}</option>`,
+  ).join("");
+
+  const authField = authRequired
+    ? `<div class="pg-field">
+        <div class="pg-field-head">
+          <label for="pg-image-auth">MCP_AUTH_TOKEN <span class="pg-tag-req">Bearer 保护</span></label>
+          <span class="pg-help">仅存本地浏览器</span>
+        </div>
+        <input id="pg-image-auth" class="pg-auth-input" type="password" autocomplete="off" placeholder="输入部署时设定的 MCP_AUTH_TOKEN">
+        <p class="pg-help">用于 /mcp 请求鉴权，不会上报至第三方。</p>
+      </div>`
+    : "";
+
+  return `<div class="pg-view-wrapper" id="pg-image-root">
+    <!-- Subpage Navigation Header -->
+    <div class="subpage-header">
+      <div class="subpage-header-left">
+        <a class="btn ghost btn-back" href="#tools" title="返回工具列表">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          返回工具列表
+        </a>
+        <div class="breadcrumb-trail">
+          <a class="breadcrumb-item" href="#tools">工具列表</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">生成图片 (<code>generate_image</code>)</span>
+        </div>
+      </div>
+      <div class="pg-status-items">
+        <span class="status-pill ok pg-session-pill"><span class="pulse-dot"></span>Google Session</span>
+        <span class="endpoint-pill"><span class="method">POST</span> /mcp</span>
+      </div>
+    </div>
+
+    <!-- Main Workspace Layout -->
+    <div class="pg-layout">
+      <!-- Left Panel: Request Parameters -->
+      <div class="pg-card">
+        <div class="pg-card-head">
+          <span class="pg-card-head-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            生图参数配置 (generate_image)
+          </span>
+          <button type="button" class="pg-tool-btn" id="pg-image-reset" title="清空输入内容">清空重置</button>
+        </div>
+        <div class="pg-card-body">
+          <form id="pg-image-form" class="pg-form" autocomplete="off">
+            ${authField}
+
+            <div class="pg-field">
+              <div class="pg-field-head">
+                <label for="pg-image-prompt">画面描述提示词 (prompt) <span class="pg-tag-req">必填</span></label>
+              </div>
+              <textarea id="pg-image-prompt" rows="3" placeholder="描述要生成的画面内容、艺术风格、光影色彩细节，或说明如何基于参考图修改"></textarea>
+              <div class="pg-presets">
+                <span style="font-size: 11px; color: var(--text-dim); align-self: center; margin-right: 2px;">预设灵感:</span>
+                <button type="button" class="pg-preset-btn" data-fill-image-prompt="赛博朋克风格未来城市夜景，雨夜霓虹灯反光，电影级光影，8K 超清壁纸">🌆 赛博朋克城市</button>
+                <button type="button" class="pg-preset-btn" data-fill-image-prompt="可爱水彩风小猫咪戴着魔法巫师帽，身边漂浮着发光的魔法书，柔和治愈配色">🐱 魔法小猫</button>
+                <button type="button" class="pg-preset-btn" data-fill-image-prompt="极简扁平风格太空探索插画，宇航员遥望绚丽星系，科技未来感渐变色">🚀 极简深空</button>
+              </div>
+            </div>
+
+            <div class="pg-field">
+              <div class="pg-field-head">
+                <label for="pg-image-aspect">画幅比例 (aspect_ratio) <span class="pg-tag-opt">可选</span></label>
+              </div>
+              <div class="pg-ratio-grid">
+                <button type="button" class="pg-ratio-btn active" data-ratio="1:1">1:1<span class="ratio-sub">正方头像</span></button>
+                <button type="button" class="pg-ratio-btn" data-ratio="16:9">16:9<span class="ratio-sub">宽屏壁纸</span></button>
+                <button type="button" class="pg-ratio-btn" data-ratio="9:16">9:16<span class="ratio-sub">手机竖屏</span></button>
+                <button type="button" class="pg-ratio-btn" data-ratio="4:3">4:3<span class="ratio-sub">经典画幅</span></button>
+                <button type="button" class="pg-ratio-btn" data-ratio="3:4">3:4<span class="ratio-sub">人像海报</span></button>
+                <button type="button" class="pg-ratio-btn" data-ratio="21:9">21:9<span class="ratio-sub">电影宽幅</span></button>
+              </div>
+              <select id="pg-image-aspect" style="display: none;">${ratios}</select>
+            </div>
+
+            <div class="pg-field">
+              <div class="pg-field-head">
+                <label for="pg-image-name">保存文件名标识 (image_name) <span class="pg-tag-opt">可选</span></label>
+              </div>
+              <input id="pg-image-name" type="text" placeholder="例如: login_hero_mockup（小写+下划线）">
+              <p class="pg-help">用于返回标识与文件名命名，留空则自动生成随机短名。</p>
+            </div>
+
+            <!-- Reference Images -->
+            <div class="pg-field">
+              <div class="pg-field-head">
+                <label>参考图垫图 (images / image_urls) <span class="pg-tag-opt">可选 · 最多 3 张</span></label>
+              </div>
+              <div class="pg-ref-card">
+                <div class="pg-drop" id="pg-image-drop">
+                  <svg class="pg-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <div>
+                    <span style="font-weight: 600; color: #fff;">点击或拖拽上传本地参考图</span>
+                    <span class="hint-text" style="display: block; font-size: 11px;">支持 JPG/PNG/WebP，自动转为 Base64</span>
+                  </div>
+                </div>
+                <input id="pg-image-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none;">
+                <div class="pg-files-list" id="pg-image-file-list"></div>
+
+                <div style="border-top: 1px dashed var(--border-subtle); padding-top: 8px; margin-top: 4px;">
+                  <label for="pg-image-urls" style="font-size: 11.5px; color: var(--text-dim); display: block; margin-bottom: 4px;">或输入远程图片 HTTP(S) URL（每行一条）：</label>
+                  <textarea id="pg-image-urls" rows="2" style="min-height: 50px;" placeholder="https://example.com/ref.png"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="pg-run-row">
+              <div class="pg-run-left">
+                <button type="submit" class="btn" id="pg-image-run" style="padding: 8px 18px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  生成图片
+                  <span class="btn-shortcut">Ctrl+Enter</span>
+                </button>
+                <button type="button" class="btn ghost" id="pg-image-abort" style="display: none; color: #f87171; border-color: rgba(244, 63, 94, 0.3);">
+                  取消请求
+                </button>
+              </div>
+              <span class="hint-text" id="pg-image-hint" style="font-size: 12px;">就绪</span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Panel: Result Console -->
+      <div class="pg-console" id="pg-image-console">
+        <div class="pg-console-head">
+          <div class="pg-console-left">
+            <span class="pg-console-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              生图结果预览
+            </span>
+            <span id="pg-image-meta" style="color: var(--text-dim); font-size: 11.5px; font-family: var(--font-mono);">尚未生成</span>
+          </div>
+          <div class="pg-console-actions">
+            <div class="pg-view-modes" id="pg-image-view-modes" style="display: none;">
+              <button type="button" class="pg-view-btn active" data-image-mode="rendered">效果预览</button>
+              <button type="button" class="pg-view-btn" data-image-mode="raw">原始 JSON</button>
+            </div>
+            <button type="button" class="pg-tool-btn" id="pg-image-copy-btn" style="display: none;" title="复制文本输出">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              复制
+            </button>
+            <button type="button" class="pg-tool-btn" id="pg-image-clear-btn" title="清空控制台">清空</button>
+          </div>
+        </div>
+
+        <div class="pg-console-body" id="pg-image-body">
+          <div class="pg-empty-state">
+            <div class="pg-empty-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            </div>
+            <div class="pg-empty-title">等待发起生图</div>
+            <div class="pg-empty-desc">
+              在左侧输入画面描述，选择画幅比例后点击「生成图片」或按 <kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px;">Ctrl + Enter</kbd> 即可生成。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Image History -->
+    <div class="pg-history-card">
+      <div class="pg-history-head">
+        <span style="display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          近期生图记录 (点击可回填参数与图片)
+        </span>
+        <button type="button" class="pg-tool-btn" id="pg-image-clear-history" style="display: none;">清空记录</button>
+      </div>
+      <div class="pg-history-list" id="pg-image-history">
+        <span class="hint-text" style="font-size: 12px; padding: 4px 0;">暂无生图调试记录</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Backward compatibility wrapper
+export function playgroundHtml(authRequired: boolean): string {
+  return `<div id="view-playground">
+    <div id="pg-legacy-search" style="margin-bottom: 24px;">
+      ${searchPlaygroundHtml(authRequired)}
+    </div>
+    <div id="pg-legacy-image">
+      ${imagePlaygroundHtml(authRequired)}
     </div>
   </div>`;
 }
@@ -1073,437 +1133,258 @@ export function playgroundHtml(authRequired: boolean): string {
 export function playgroundClientJs(): string {
   return `
   var AUTH_KEY = ${JSON.stringify(AUTH_STORAGE_KEY)};
-  var PG_TOOL_KEY = ${JSON.stringify(TOOL_STORAGE_KEY)};
-  var pgTool = "search_web";
-  var pgFiles = [];
-  var pgAbort = null;
-  var pgHistory = [];
-  var pgTimer = null;
-  var pgLastResult = null;
-  var pgViewMode = "rendered";
+  var SEARCH_HIST_KEY = ${JSON.stringify(SEARCH_HISTORY_KEY)};
+  var IMAGE_HIST_KEY = ${JSON.stringify(IMAGE_HISTORY_KEY)};
 
-  try {
-    var savedPg = localStorage.getItem(PG_TOOL_KEY);
-    if (savedPg === "search_web" || savedPg === "generate_image") pgTool = savedPg;
-  } catch (e) {}
+  var searchAbort = null;
+  var imageAbort = null;
+  var searchTimer = null;
+  var imageTimer = null;
 
+  var searchLastResult = null;
+  var imageLastResult = null;
+  var searchViewMode = "rendered";
+  var imageViewMode = "rendered";
+
+  var imageFiles = [];
+  var searchHistory = [];
+  var imageHistory = [];
+
+  // Load auth token into both forms
   if (auth) {
     try {
       var savedAuth = localStorage.getItem(AUTH_KEY) || "";
-      var authInput = document.getElementById("pg-auth");
-      if (authInput && savedAuth) authInput.value = savedAuth;
+      document.querySelectorAll(".pg-auth-input").forEach(function (input) {
+        if (savedAuth) input.value = savedAuth;
+        input.addEventListener("input", function () {
+          var val = input.value.trim();
+          document.querySelectorAll(".pg-auth-input").forEach(function (other) {
+            if (other !== input) other.value = val;
+          });
+          try {
+            if (val) localStorage.setItem(AUTH_KEY, val);
+            else localStorage.removeItem(AUTH_KEY);
+          } catch (e) {}
+        });
+      });
     } catch (e) {}
   }
 
-  // Update session pill in playground header
-  var sessionPill = document.getElementById("pg-session-pill");
-  if (sessionPill) {
+  // Update session pill in playground headers
+  function updateSessionPills() {
+    document.querySelectorAll(".pg-session-pill").forEach(function (pill) {
+      if (currentRefreshToken) {
+        pill.className = "status-pill ok pg-session-pill";
+        pill.innerHTML = '<span class="pulse-dot"></span>Google Session 有效';
+      } else {
+        pill.className = "status-pill warn pg-session-pill";
+        pill.innerHTML = '<span class="pulse-dot"></span>无 Google Session';
+      }
+    });
+  }
+  updateSessionPills();
+
+  function mcpHeadersForTool() {
+    var h = {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    };
+    if (auth) {
+      var authInput = document.querySelector(".pg-auth-input");
+      var token = (authInput && authInput.value.trim()) || "";
+      if (!token) {
+        try { token = localStorage.getItem(AUTH_KEY) || ""; } catch (e) {}
+      }
+      if (token) h["Authorization"] = "Bearer " + token;
+    }
     if (currentRefreshToken) {
-      sessionPill.className = "status-pill ok";
-      sessionPill.innerHTML = '<span class="pulse-dot"></span>Google Session 有效';
-    } else {
-      sessionPill.className = "status-pill warn";
-      sessionPill.innerHTML = '<span class="pulse-dot"></span>无 Google Session';
+      h["X-Agy-Refresh-Token"] = currentRefreshToken;
+    }
+    return h;
+  }
+
+  /* =========================================================================
+     SEARCH_WEB CONTROLLER
+     ========================================================================= */
+  var searchQueryInput = document.getElementById("pg-search-query");
+  var searchQueryCount = document.getElementById("pg-search-query-count");
+  function updateSearchCharCount() {
+    if (searchQueryInput && searchQueryCount) {
+      searchQueryCount.textContent = searchQueryInput.value ? (searchQueryInput.value.length + " 字") : "";
     }
   }
-
-  function setPgTool(name) {
-    pgTool = name === "generate_image" ? "generate_image" : "search_web";
-    try { localStorage.setItem(PG_TOOL_KEY, pgTool); } catch (e) {}
-    document.querySelectorAll(".pg-tool-tab").forEach(function (b) {
-      if (b.getAttribute("data-tool") === pgTool) b.classList.add("active");
-      else b.classList.remove("active");
-    });
-    document.querySelectorAll(".pg-pick").forEach(function (b) {
-      if (b.getAttribute("data-tool") === pgTool) b.classList.add("active");
-      else b.classList.remove("active");
-    });
-    var searchFields = document.getElementById("pg-fields-search_web");
-    var imageFields = document.getElementById("pg-fields-generate_image");
-    if (searchFields) searchFields.hidden = pgTool !== "search_web";
-    if (imageFields) imageFields.hidden = pgTool !== "generate_image";
-
-    var breadcrumbTool = document.getElementById("breadcrumb-tool-name");
-    if (breadcrumbTool) breadcrumbTool.textContent = pgTool;
-
-    var currentViewTitle = document.getElementById("current-view-title");
-    var testSub = document.getElementById("tools-subview-test");
-    if (testSub && testSub.classList.contains("active") && currentViewTitle) {
-      currentViewTitle.textContent = "工具测试 · " + pgTool;
-    }
+  if (searchQueryInput) {
+    searchQueryInput.addEventListener("input", updateSearchCharCount);
   }
-  window.setPgTool = setPgTool;
-  window.getPgTool = function () { return pgTool; };
-  setPgTool(pgTool);
 
-  document.querySelectorAll(".pg-tool-tab, .pg-pick").forEach(function (btn) {
+  // Preset fillers for search
+  document.querySelectorAll("[data-fill-search-query]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var t = btn.getAttribute("data-tool") || "search_web";
-      setPgTool(t);
-      if (location.hash.indexOf("#tools/") === 0) {
-        try { history.replaceState(null, "", "#tools/" + t); } catch (e) {}
-      }
-    });
-  });
-  document.querySelectorAll("[data-pg-tool]").forEach(function (el) {
-    el.addEventListener("click", function () {
-      setPgTool(el.getAttribute("data-pg-tool") || "search_web");
-    });
-  });
-
-  // Character counter helper
-  function updateCharCounts() {
-    var q = document.getElementById("pg-query");
-    var qc = document.getElementById("pg-query-count");
-    if (q && qc) qc.textContent = q.value ? (q.value.length + " 字") : "";
-  }
-  var qInput = document.getElementById("pg-query");
-  if (qInput) {
-    qInput.addEventListener("input", updateCharCounts);
-  }
-
-  // Preset query fillers
-  document.querySelectorAll("[data-fill-query]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var q = btn.getAttribute("data-fill-query") || "";
-      var input = document.getElementById("pg-query");
-      if (input) {
-        input.value = q;
-        input.focus();
-        updateCharCounts();
+      var q = btn.getAttribute("data-fill-search-query") || "";
+      if (searchQueryInput) {
+        searchQueryInput.value = q;
+        searchQueryInput.focus();
+        updateSearchCharCount();
       }
     });
   });
 
-  // Preset prompt fillers
-  document.querySelectorAll("[data-fill-prompt]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var p = btn.getAttribute("data-fill-prompt") || "";
-      var input = document.getElementById("pg-prompt");
-      if (input) {
-        input.value = p;
-        input.focus();
+  // Search reset button
+  var searchResetBtn = document.getElementById("pg-search-reset");
+  if (searchResetBtn) {
+    searchResetBtn.addEventListener("click", function () {
+      if (searchQueryInput) {
+        searchQueryInput.value = "";
+        updateSearchCharCount();
       }
-    });
-  });
-
-  // Aspect ratio visual selector sync
-  var aspectSelect = document.getElementById("pg-aspect");
-  var ratioButtons = document.querySelectorAll(".pg-ratio-btn");
-  ratioButtons.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var r = btn.getAttribute("data-ratio") || "1:1";
-      if (aspectSelect) aspectSelect.value = r;
-      ratioButtons.forEach(function (b) {
-        if (b.getAttribute("data-ratio") === r) b.classList.add("active");
-        else b.classList.remove("active");
-      });
-    });
-  });
-  if (aspectSelect) {
-    aspectSelect.addEventListener("change", function () {
-      var r = aspectSelect.value;
-      ratioButtons.forEach(function (b) {
-        if (b.getAttribute("data-ratio") === r) b.classList.add("active");
-        else b.classList.remove("active");
-      });
+      setSearchHint("搜索表单已重置");
     });
   }
 
-  // View modes switch (Rendered vs Raw JSON)
-  var viewModesContainer = document.getElementById("pg-view-modes");
-  document.querySelectorAll(".pg-view-btn").forEach(function (btn) {
+  // Search view mode toggle
+  document.querySelectorAll("[data-search-mode]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      pgViewMode = btn.getAttribute("data-mode") || "rendered";
-      document.querySelectorAll(".pg-view-btn").forEach(function (b) {
+      searchViewMode = btn.getAttribute("data-search-mode") || "rendered";
+      document.querySelectorAll("[data-search-mode]").forEach(function (b) {
         if (b === btn) b.classList.add("active");
         else b.classList.remove("active");
       });
-      if (pgLastResult) {
-        var body = document.getElementById("pg-result-body");
-        if (body) body.innerHTML = renderPgBody(pgLastResult);
+      if (searchLastResult) {
+        var body = document.getElementById("pg-search-body");
+        if (body) body.innerHTML = renderSearchBody(searchLastResult);
       }
     });
   });
 
-  // Reset form button
-  var resetBtn = document.getElementById("pg-reset-btn");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", function () {
-      if (pgTool === "search_web") {
-        var qInput = document.getElementById("pg-query");
-        if (qInput) qInput.value = "";
-        updateCharCounts();
-      } else {
-        var pInput = document.getElementById("pg-prompt");
-        if (pInput) pInput.value = "";
-        var nInput = document.getElementById("pg-image-name");
-        if (nInput) nInput.value = "";
-        var uInput = document.getElementById("pg-image-urls");
-        if (uInput) uInput.value = "";
-        pgFiles = [];
-        renderPgFiles();
-      }
-      setPgHint("表单已重置");
-    });
-  }
-
-  // Clear result console
-  var clearResultBtn = document.getElementById("pg-clear-result-btn");
-  if (clearResultBtn) {
-    clearResultBtn.addEventListener("click", function () {
-      pgLastResult = null;
-      var body = document.getElementById("pg-result-body");
-      var meta = document.getElementById("pg-result-meta");
-      var copyBtn = document.getElementById("pg-copy-result-btn");
+  // Search clear console button
+  var searchClearBtn = document.getElementById("pg-search-clear-btn");
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener("click", function () {
+      searchLastResult = null;
+      var body = document.getElementById("pg-search-body");
+      var meta = document.getElementById("pg-search-meta");
+      var copyBtn = document.getElementById("pg-search-copy-btn");
+      var modes = document.getElementById("pg-search-view-modes");
       if (meta) meta.textContent = "尚未调用";
-      if (viewModesContainer) viewModesContainer.style.display = "none";
+      if (modes) modes.style.display = "none";
       if (copyBtn) copyBtn.style.display = "none";
       if (body) {
         body.innerHTML = '<div class="pg-empty-state">' +
-          '<div class="pg-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></div>' +
+          '<div class="pg-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>' +
           '<div class="pg-empty-title">结果已清空</div>' +
-          '<div class="pg-empty-desc">在左侧配置参数并点击「运行调用」即可重新发起调试。</div>' +
+          '<div class="pg-empty-desc">在左侧输入搜索关键词并点击「运行搜索」即可重新发起检索。</div>' +
         '</div>';
       }
     });
   }
 
-  // Copy result action
-  var copyResultBtn = document.getElementById("pg-copy-result-btn");
-  if (copyResultBtn) {
-    copyResultBtn.addEventListener("click", function () {
-      if (!pgLastResult) return;
-      var textToCopy = "";
-      if (pgViewMode === "raw" || !pgLastResult.formattedText) {
-        textToCopy = pgLastResult.rawJson || pgLastResult.rawText || "";
-      } else {
-        textToCopy = pgLastResult.formattedText;
-      }
+  // Search copy result button
+  var searchCopyBtn = document.getElementById("pg-search-copy-btn");
+  if (searchCopyBtn) {
+    searchCopyBtn.addEventListener("click", function () {
+      if (!searchLastResult) return;
+      var textToCopy = (searchViewMode === "raw" || !searchLastResult.formattedText)
+        ? (searchLastResult.rawJson || searchLastResult.rawText || "")
+        : searchLastResult.formattedText;
       copyText(textToCopy).then(function (ok) {
-        var origHtml = copyResultBtn.innerHTML;
-        copyResultBtn.innerHTML = '<span>' + (ok ? "已复制 ✓" : "复制失败") + '</span>';
-        setTimeout(function () { copyResultBtn.innerHTML = origHtml; }, 2000);
+        var orig = searchCopyBtn.innerHTML;
+        searchCopyBtn.innerHTML = '<span>' + (ok ? "已复制 ✓" : "复制失败") + '</span>';
+        setTimeout(function () { searchCopyBtn.innerHTML = orig; }, 2000);
       });
     });
   }
 
-  // Abort running request
-  var abortBtn = document.getElementById("pg-abort-btn");
-  if (abortBtn) {
-    abortBtn.addEventListener("click", function () {
-      if (pgAbort) {
-        pgAbort.abort();
-        pgAbort = null;
-        if (pgTimer) { clearInterval(pgTimer); pgTimer = null; }
-        var runBtn = document.getElementById("pg-run");
+  // Search abort button
+  var searchAbortBtn = document.getElementById("pg-search-abort");
+  if (searchAbortBtn) {
+    searchAbortBtn.addEventListener("click", function () {
+      if (searchAbort) {
+        searchAbort.abort();
+        searchAbort = null;
+        if (searchTimer) { clearInterval(searchTimer); searchTimer = null; }
+        var runBtn = document.getElementById("pg-search-run");
         if (runBtn) runBtn.disabled = false;
-        abortBtn.style.display = "none";
-        setPgHint("调用已手动取消");
-        var meta = document.getElementById("pg-result-meta");
+        searchAbortBtn.style.display = "none";
+        setSearchHint("搜索请求已手动取消");
+        var meta = document.getElementById("pg-search-meta");
         if (meta) meta.innerHTML = '<span class="status-tag bad">ABORTED</span>';
-        var body = document.getElementById("pg-result-body");
-        if (body) body.innerHTML = '<div class="status-pill bad" style="margin-bottom:12px;">用户已手动取消请求</div>';
+        var body = document.getElementById("pg-search-body");
+        if (body) body.innerHTML = '<div class="status-pill bad" style="margin-bottom:12px;">用户已手动取消搜索请求</div>';
       }
     });
   }
 
-  // Clear history
-  var clearHistoryBtn = document.getElementById("pg-clear-history-btn");
-  if (clearHistoryBtn) {
-    clearHistoryBtn.addEventListener("click", function () {
-      pgHistory = [];
-      renderPgHistory();
-    });
+  function setSearchHint(msg) {
+    var h = document.getElementById("pg-search-hint");
+    if (h) h.textContent = msg;
   }
 
-  // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to run
-  document.addEventListener("keydown", function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      var pgPanel = document.getElementById("view-playground");
-      if (pgPanel && (pgPanel.classList.contains("active") || pgPanel.style.display !== "none")) {
-        e.preventDefault();
-        runPlayground();
-      }
-    }
-  });
-
-  // Drag & drop file management
-  var drop = document.getElementById("pg-drop");
-  var fileInput = document.getElementById("pg-files");
-  if (drop && fileInput) {
-    drop.addEventListener("click", function () { fileInput.click(); });
-    drop.addEventListener("dragover", function (e) {
+  // Search form submit
+  var searchForm = document.getElementById("pg-search-form");
+  if (searchForm) {
+    searchForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      drop.classList.add("drag");
-    });
-    drop.addEventListener("dragleave", function () { drop.classList.remove("drag"); });
-    drop.addEventListener("drop", function (e) {
-      e.preventDefault();
-      drop.classList.remove("drag");
-      addPgFiles(e.dataTransfer && e.dataTransfer.files);
-    });
-    fileInput.addEventListener("change", function () {
-      addPgFiles(fileInput.files);
-      fileInput.value = "";
+      runSearch();
     });
   }
 
-  function addPgFiles(list) {
-    if (!list || !list.length) return;
-    var i;
-    for (i = 0; i < list.length; i++) addPgFile(list[i]);
-  }
-  function addPgFile(file) {
-    if (!file || !file.type || file.type.indexOf("image/") !== 0) return;
-    if (pgFiles.length >= 3) {
-      setPgHint("参考图最多 3 张（含 URL）");
+  function runSearch() {
+    var query = (searchQueryInput && searchQueryInput.value.trim()) || "";
+    if (!query) {
+      setSearchHint("请输入搜索查询词");
+      if (searchQueryInput) searchQueryInput.focus();
       return;
     }
-    var reader = new FileReader();
-    reader.onload = function () {
-      var url = String(reader.result || "");
-      var m = url.match(/^data:([^;]+);base64,(.*)$/);
-      if (!m) return;
-      var kb = Math.round(file.size / 1024);
-      pgFiles.push({ mimeType: m[1], data: m[2], name: file.name, sizeKb: kb, preview: url });
-      renderPgFiles();
-    };
-    reader.readAsDataURL(file);
-  }
-  function renderPgFiles() {
-    var list = document.getElementById("pg-file-list");
-    var countEl = document.getElementById("pg-file-count");
-    if (countEl) countEl.textContent = pgFiles.length + "/3";
-    if (!list) return;
-    if (!pgFiles.length) {
-      list.innerHTML = "";
-      return;
-    }
-    list.innerHTML = pgFiles.map(function (f, i) {
-      var sizeText = f.sizeKb ? " (" + f.sizeKb + "KB)" : "";
-      return '<div class="pg-file">' +
-        '<img alt="" src="' + f.preview + '">' +
-        '<span class="name">' + escapeHtmlJs(f.name) + sizeText + '</span>' +
-        '<button type="button" data-rm="' + i + '">移除</button>' +
-      '</div>';
-    }).join("");
-    list.querySelectorAll("[data-rm]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        pgFiles.splice(Number(btn.getAttribute("data-rm") || "0"), 1);
-        renderPgFiles();
-      });
-    });
-  }
 
-  function setPgHint(text) {
-    var el = document.getElementById("pg-run-hint");
-    if (el) el.textContent = text || "";
-  }
-
-  var pgForm = document.getElementById("pg-form");
-  if (pgForm) {
-    pgForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      runPlayground();
-    });
-  }
-
-  function collectArgs() {
-    if (pgTool === "search_web") {
-      var q = (document.getElementById("pg-query") || {}).value || "";
-      q = String(q).trim();
-      if (!q) throw new Error("搜索 query 不能为空");
-      return { query: q };
-    }
-    var prompt = String((document.getElementById("pg-prompt") || {}).value || "").trim();
-    if (!prompt) throw new Error("生图 prompt 不能为空");
-    var args = { prompt: prompt };
-    var name = String((document.getElementById("pg-image-name") || {}).value || "").trim();
-    if (name) args.image_name = name;
-    var ratio = String((document.getElementById("pg-aspect") || {}).value || "1:1");
-    if (ratio) args.aspect_ratio = ratio;
-    var urlsRaw = String((document.getElementById("pg-image-urls") || {}).value || "");
-    var urls = urlsRaw.split(/\\n/).map(function (u) { return u.trim(); }).filter(Boolean);
-    if (urls.length) args.image_urls = urls;
-    if (pgFiles.length) {
-      args.images = pgFiles.map(function (f) {
-        return { mimeType: f.mimeType, data: f.data };
-      });
-    }
-    if ((urls.length + pgFiles.length) > 3) throw new Error("image_urls 和 images 合计最多 3 张");
-    return args;
-  }
-
-  function mcpHeaders() {
-    var headers = { "Content-Type": "application/json", Accept: "application/json" };
-    if (currentRefreshToken) headers["X-Agy-Refresh-Token"] = currentRefreshToken;
-    if (auth) {
-      var token = String((document.getElementById("pg-auth") || {}).value || "").trim();
-      if (token) {
-        headers.Authorization = "Bearer " + token;
-        try { localStorage.setItem(AUTH_KEY, token); } catch (e) {}
-      }
-    }
-    return headers;
-  }
-
-  function runPlayground() {
-    var args;
-    try {
-      args = collectArgs();
-    } catch (err) {
-      setPgHint(err && err.message ? err.message : String(err));
-      return;
-    }
-    if (pgAbort) pgAbort.abort();
-    pgAbort = new AbortController();
+    if (searchAbort) searchAbort.abort();
+    searchAbort = new AbortController();
     var t0 = Date.now();
-    var runBtn = document.getElementById("pg-run");
-    var abortBtn = document.getElementById("pg-abort-btn");
-    var meta = document.getElementById("pg-result-meta");
-    var body = document.getElementById("pg-result-body");
-    var copyBtn = document.getElementById("pg-copy-result-btn");
-    var viewModes = document.getElementById("pg-view-modes");
+
+    var runBtn = document.getElementById("pg-search-run");
+    var abortBtn = document.getElementById("pg-search-abort");
+    var meta = document.getElementById("pg-search-meta");
+    var body = document.getElementById("pg-search-body");
+    var copyBtn = document.getElementById("pg-search-copy-btn");
+    var viewModes = document.getElementById("pg-search-view-modes");
 
     if (runBtn) runBtn.disabled = true;
     if (abortBtn) abortBtn.style.display = "inline-flex";
     if (copyBtn) copyBtn.style.display = "none";
     if (viewModes) viewModes.style.display = "none";
 
-    setPgHint("正在调用 POST /mcp …");
+    setSearchHint("正在调用 POST /mcp (search_web)…");
     if (meta) meta.innerHTML = '<span class="status-tag ok" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">RUNNING</span>';
-    
-    var toolDesc = pgTool === "search_web" ? "正在执行 Google 联网检索…" : "正在执行 Imagen 3 画图（通常需 5-15 秒）…";
+
     if (body) {
       body.innerHTML = '<div class="pg-loading-state">' +
         '<div class="pg-spinner"></div>' +
-        '<div style="font-weight: 600; color: #fff;">' + toolDesc + '</div>' +
-        '<div class="pg-loading-timer" id="pg-live-timer">0.0s</div>' +
-        '<div class="hint-text" style="font-size: 12px;">调用方法: tools/call · 工具: ' + escapeHtmlJs(pgTool) + '</div>' +
+        '<div style="font-weight: 600; color: #fff;">正在执行 Google 联网检索…</div>' +
+        '<div class="pg-loading-timer" id="pg-search-live-timer">0.0s</div>' +
+        '<div class="hint-text" style="font-size: 12px;">方法: tools/call · 工具: search_web</div>' +
       '</div>';
     }
 
-    if (pgTimer) clearInterval(pgTimer);
-    pgTimer = setInterval(function () {
+    if (searchTimer) clearInterval(searchTimer);
+    searchTimer = setInterval(function () {
       var elapsed = ((Date.now() - t0) / 1000).toFixed(1) + "s";
-      setPgHint("调用中… " + elapsed);
-      var timerEl = document.getElementById("pg-live-timer");
+      setSearchHint("搜索中… " + elapsed);
+      var timerEl = document.getElementById("pg-search-live-timer");
       if (timerEl) timerEl.textContent = elapsed;
     }, 100);
 
+    var args = { query: query };
     var payload = {
       jsonrpc: "2.0",
       id: Date.now(),
       method: "tools/call",
-      params: { name: pgTool, arguments: args }
+      params: { name: "search_web", arguments: args }
     };
 
     fetch("/mcp", {
       method: "POST",
-      headers: mcpHeaders(),
+      headers: mcpHeadersForTool(),
       body: JSON.stringify(payload),
-      signal: pgAbort.signal
+      signal: searchAbort.signal
     }).then(function (r) {
       return r.text().then(function (text) {
         var json = null;
@@ -1511,20 +1392,20 @@ export function playgroundClientJs(): string {
         return { okHttp: r.ok, status: r.status, text: text, json: json };
       });
     }).then(function (res) {
-      finishPg(t0, payload, res, args);
+      finishSearch(t0, payload, res, args);
     }).catch(function (err) {
       if (err && err.name === "AbortError") return;
-      finishPg(t0, payload, { okHttp: false, status: 0, text: String(err && err.message || err), json: null }, args);
+      finishSearch(t0, payload, { okHttp: false, status: 0, text: String(err && err.message || err), json: null }, args);
     });
   }
 
-  function finishPg(t0, payload, res, args) {
-    if (pgTimer) { clearInterval(pgTimer); pgTimer = null; }
+  function finishSearch(t0, payload, res, args) {
+    if (searchTimer) { clearInterval(searchTimer); searchTimer = null; }
     var ms = Date.now() - t0;
-    var runBtn = document.getElementById("pg-run");
-    var abortBtn = document.getElementById("pg-abort-btn");
-    var copyBtn = document.getElementById("pg-copy-result-btn");
-    var viewModes = document.getElementById("pg-view-modes");
+    var runBtn = document.getElementById("pg-search-run");
+    var abortBtn = document.getElementById("pg-search-abort");
+    var copyBtn = document.getElementById("pg-search-copy-btn");
+    var viewModes = document.getElementById("pg-search-view-modes");
 
     if (runBtn) runBtn.disabled = false;
     if (abortBtn) abortBtn.style.display = "none";
@@ -1545,8 +1426,446 @@ export function playgroundClientJs(): string {
       errMsg = (rpc.result.content && rpc.result.content[0] && rpc.result.content[0].text) || "tool error";
     }
 
-    setPgHint(isError ? "调用失败 · 耗时 " + fmtMsJs(ms) : "调用成功 · 耗时 " + fmtMsJs(ms));
-    var meta = document.getElementById("pg-result-meta");
+    setSearchHint(isError ? "搜索失败 · 耗时 " + fmtMsJs(ms) : "搜索成功 · 耗时 " + fmtMsJs(ms));
+    var meta = document.getElementById("pg-search-meta");
+    if (meta) {
+      meta.innerHTML = '<span class="status-tag ' + (isError ? "bad" : "ok") + '">' +
+        (isError ? "ERR" : "200 OK") + '</span> <span class="mono" style="margin-left: 4px;">⚡ ' + fmtMsJs(ms) + '</span>';
+    }
+
+    var prettyJson = rpc ? JSON.stringify(rpc, null, 2) : res.text;
+    var content = rpc && rpc.result && Array.isArray(rpc.result.content) ? rpc.result.content : [];
+    var texts = [];
+    content.forEach(function (c) {
+      if (c && c.type === "text" && c.text) texts.push(c.text);
+    });
+
+    searchLastResult = {
+      rpc: rpc,
+      rawText: res.text,
+      rawJson: prettyJson,
+      isError: isError,
+      errMsg: errMsg,
+      texts: texts,
+      formattedText: texts.join("\\n\\n")
+    };
+
+    var body = document.getElementById("pg-search-body");
+    if (body) body.innerHTML = renderSearchBody(searchLastResult);
+    bindCodeCopyButtons();
+
+    searchHistory.unshift({
+      tool: "search_web",
+      label: args.query || "",
+      args: args,
+      result: searchLastResult,
+      ok: !isError,
+      ms: ms,
+      time: Date.now()
+    });
+    if (searchHistory.length > 8) searchHistory.length = 8;
+    renderSearchHistory();
+  }
+
+  function renderSearchBody(res) {
+    if (searchViewMode === "raw") {
+      var highlighted = syntaxHighlightJson(res.rawJson || res.rawText || "");
+      return '<div class="pg-json-view"><pre><code>' + highlighted + '</code></pre></div>';
+    }
+    var html = "";
+    if (res.isError) {
+      html += '<div class="status-pill bad" style="margin-bottom:14px; width: 100%; border-radius: 8px; padding: 10px 14px; font-size: 13px;">' +
+        '<span style="font-weight: 700; margin-right: 6px;">❌ 检索出错:</span> ' + escapeHtmlJs(String(res.errMsg || "未知错误")) +
+      '</div>';
+    }
+    if (res.texts && res.texts.length) {
+      html += renderMarkdown(res.texts.join("\\n\\n"));
+    } else if (!res.isError) {
+      html += '<div class="hint-text" style="padding: 20px 0; text-align: center;">搜索完成，未返回文本结果。</div>';
+    }
+    return html;
+  }
+
+  function renderSearchHistory() {
+    var el = document.getElementById("pg-search-history");
+    var clearBtn = document.getElementById("pg-search-clear-history");
+    if (!el) return;
+    if (clearBtn) clearBtn.style.display = searchHistory.length ? "inline-flex" : "none";
+    if (!searchHistory.length) {
+      el.innerHTML = '<span class="hint-text" style="font-size: 12px; padding: 4px 0;">暂无搜索调试记录</span>';
+      return;
+    }
+    el.innerHTML = searchHistory.map(function (h, idx) {
+      var q = h.label.length > 30 ? h.label.slice(0, 30) + "…" : h.label;
+      var statusClass = h.ok ? "ok" : "bad";
+      return '<div class="pg-hist-item ' + statusClass + '" data-search-hist-idx="' + idx + '" title="点击回填此记录">' +
+        '<span class="pg-hist-dot ' + statusClass + '"></span>' +
+        '<span>' + escapeHtmlJs(q || "—") + '</span>' +
+        '<span style="color: var(--text-dim); font-size: 10.5px;">' + fmtMsJs(h.ms) + '</span>' +
+      '</div>';
+    }).join("");
+
+    el.querySelectorAll("[data-search-hist-idx]").forEach(function (item) {
+      item.addEventListener("click", function () {
+        var idx = Number(item.getAttribute("data-search-hist-idx") || "0");
+        var h = searchHistory[idx];
+        if (!h) return;
+        if (searchQueryInput && h.args) {
+          searchQueryInput.value = h.args.query || "";
+          updateSearchCharCount();
+        }
+        if (h.result) {
+          searchLastResult = h.result;
+          var body = document.getElementById("pg-search-body");
+          var meta = document.getElementById("pg-search-meta");
+          var copyBtn = document.getElementById("pg-search-copy-btn");
+          var viewModes = document.getElementById("pg-search-view-modes");
+          if (copyBtn) copyBtn.style.display = "inline-flex";
+          if (viewModes) viewModes.style.display = "flex";
+          if (meta) {
+            meta.innerHTML = '<span class="status-tag ' + (h.ok ? "ok" : "bad") + '">' +
+              (h.ok ? "200 OK" : "ERR") + '</span> <span class="mono" style="margin-left: 4px;">⚡ ' + fmtMsJs(h.ms) + '</span>';
+          }
+          if (body) body.innerHTML = renderSearchBody(h.result);
+          bindCodeCopyButtons();
+        }
+        setSearchHint("已回填历史搜索");
+      });
+    });
+  }
+
+  var searchClearHistBtn = document.getElementById("pg-search-clear-history");
+  if (searchClearHistBtn) {
+    searchClearHistBtn.addEventListener("click", function () {
+      searchHistory = [];
+      renderSearchHistory();
+    });
+  }
+
+
+  /* =========================================================================
+     GENERATE_IMAGE CONTROLLER
+     ========================================================================= */
+  var imagePromptInput = document.getElementById("pg-image-prompt");
+  var imageNameInput = document.getElementById("pg-image-name");
+  var imageUrlsInput = document.getElementById("pg-image-urls");
+  var imageAspectSelect = document.getElementById("pg-image-aspect");
+  var imageDrop = document.getElementById("pg-image-drop");
+  var imageFileInput = document.getElementById("pg-image-files");
+
+  // Preset prompt fillers
+  document.querySelectorAll("[data-fill-image-prompt]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var p = btn.getAttribute("data-fill-image-prompt") || "";
+      if (imagePromptInput) {
+        imagePromptInput.value = p;
+        imagePromptInput.focus();
+      }
+    });
+  });
+
+  // Aspect ratio pill selector
+  var ratioButtons = document.querySelectorAll(".pg-ratio-btn");
+  ratioButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var r = btn.getAttribute("data-ratio") || "1:1";
+      if (imageAspectSelect) imageAspectSelect.value = r;
+      ratioButtons.forEach(function (b) {
+        if (b.getAttribute("data-ratio") === r) b.classList.add("active");
+        else b.classList.remove("active");
+      });
+    });
+  });
+  if (imageAspectSelect) {
+    imageAspectSelect.addEventListener("change", function () {
+      var r = imageAspectSelect.value;
+      ratioButtons.forEach(function (b) {
+        if (b.getAttribute("data-ratio") === r) b.classList.add("active");
+        else b.classList.remove("active");
+      });
+    });
+  }
+
+  // File upload management for images
+  function addImageFiles(fileList) {
+    if (!fileList || !fileList.length) return;
+    for (var i = 0; i < fileList.length; i++) {
+      if (imageFiles.length >= 3) {
+        setImageHint("参考图最多添加 3 张");
+        break;
+      }
+      (function (file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var res = e.target.result;
+          var comma = res.indexOf(",");
+          var base64 = comma >= 0 ? res.slice(comma + 1) : res;
+          imageFiles.push({
+            name: file.name,
+            mimeType: file.type || "image/jpeg",
+            data: base64,
+            dataUrl: res
+          });
+          renderImageFileList();
+        };
+        reader.readAsDataURL(file);
+      })(fileList[i]);
+    }
+  }
+
+  function renderImageFileList() {
+    var list = document.getElementById("pg-image-file-list");
+    if (!list) return;
+    list.innerHTML = imageFiles.map(function (f, idx) {
+      return '<div class="pg-file">' +
+        '<img class="thumb" src="' + f.dataUrl + '" alt="preview">' +
+        '<span class="name">' + escapeHtmlJs(f.name) + '</span>' +
+        '<button type="button" data-del-img-idx="' + idx + '" title="删除此参考图">✕</button>' +
+      '</div>';
+    }).join("");
+
+    list.querySelectorAll("[data-del-img-idx]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = Number(btn.getAttribute("data-del-img-idx") || "0");
+        imageFiles.splice(idx, 1);
+        renderImageFileList();
+      });
+    });
+  }
+
+  if (imageDrop && imageFileInput) {
+    imageDrop.addEventListener("click", function () { imageFileInput.click(); });
+    imageDrop.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      imageDrop.classList.add("drag");
+    });
+    imageDrop.addEventListener("dragleave", function () { imageDrop.classList.remove("drag"); });
+    imageDrop.addEventListener("drop", function (e) {
+      e.preventDefault();
+      imageDrop.classList.remove("drag");
+      addImageFiles(e.dataTransfer && e.dataTransfer.files);
+    });
+    imageFileInput.addEventListener("change", function () {
+      addImageFiles(imageFileInput.files);
+      imageFileInput.value = "";
+    });
+  }
+
+  // Image reset button
+  var imageResetBtn = document.getElementById("pg-image-reset");
+  if (imageResetBtn) {
+    imageResetBtn.addEventListener("click", function () {
+      if (imagePromptInput) imagePromptInput.value = "";
+      if (imageNameInput) imageNameInput.value = "";
+      if (imageUrlsInput) imageUrlsInput.value = "";
+      imageFiles = [];
+      renderImageFileList();
+      setImageHint("生图表单已重置");
+    });
+  }
+
+  // Image view mode toggle
+  document.querySelectorAll("[data-image-mode]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      imageViewMode = btn.getAttribute("data-image-mode") || "rendered";
+      document.querySelectorAll("[data-image-mode]").forEach(function (b) {
+        if (b === btn) b.classList.add("active");
+        else b.classList.remove("active");
+      });
+      if (imageLastResult) {
+        var body = document.getElementById("pg-image-body");
+        if (body) body.innerHTML = renderImageBody(imageLastResult);
+      }
+    });
+  });
+
+  // Image clear console button
+  var imageClearBtn = document.getElementById("pg-image-clear-btn");
+  if (imageClearBtn) {
+    imageClearBtn.addEventListener("click", function () {
+      imageLastResult = null;
+      var body = document.getElementById("pg-image-body");
+      var meta = document.getElementById("pg-image-meta");
+      var copyBtn = document.getElementById("pg-image-copy-btn");
+      var modes = document.getElementById("pg-image-view-modes");
+      if (meta) meta.textContent = "尚未生成";
+      if (modes) modes.style.display = "none";
+      if (copyBtn) copyBtn.style.display = "none";
+      if (body) {
+        body.innerHTML = '<div class="pg-empty-state">' +
+          '<div class="pg-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>' +
+          '<div class="pg-empty-title">结果已清空</div>' +
+          '<div class="pg-empty-desc">在左侧输入画面描述并点击「生成图片」即可发起生成。</div>' +
+        '</div>';
+      }
+    });
+  }
+
+  // Image copy result button
+  var imageCopyBtn = document.getElementById("pg-image-copy-btn");
+  if (imageCopyBtn) {
+    imageCopyBtn.addEventListener("click", function () {
+      if (!imageLastResult) return;
+      var textToCopy = (imageViewMode === "raw" || !imageLastResult.formattedText)
+        ? (imageLastResult.rawJson || imageLastResult.rawText || "")
+        : imageLastResult.formattedText;
+      copyText(textToCopy).then(function (ok) {
+        var orig = imageCopyBtn.innerHTML;
+        imageCopyBtn.innerHTML = '<span>' + (ok ? "已复制 ✓" : "复制失败") + '</span>';
+        setTimeout(function () { imageCopyBtn.innerHTML = orig; }, 2000);
+      });
+    });
+  }
+
+  // Image abort button
+  var imageAbortBtn = document.getElementById("pg-image-abort");
+  if (imageAbortBtn) {
+    imageAbortBtn.addEventListener("click", function () {
+      if (imageAbort) {
+        imageAbort.abort();
+        imageAbort = null;
+        if (imageTimer) { clearInterval(imageTimer); imageTimer = null; }
+        var runBtn = document.getElementById("pg-image-run");
+        if (runBtn) runBtn.disabled = false;
+        imageAbortBtn.style.display = "none";
+        setImageHint("生图请求已手动取消");
+        var meta = document.getElementById("pg-image-meta");
+        if (meta) meta.innerHTML = '<span class="status-tag bad">ABORTED</span>';
+        var body = document.getElementById("pg-image-body");
+        if (body) body.innerHTML = '<div class="status-pill bad" style="margin-bottom:12px;">用户已手动取消生图请求</div>';
+      }
+    });
+  }
+
+  function setImageHint(msg) {
+    var h = document.getElementById("pg-image-hint");
+    if (h) h.textContent = msg;
+  }
+
+  // Image form submit
+  var imageForm = document.getElementById("pg-image-form");
+  if (imageForm) {
+    imageForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      runImage();
+    });
+  }
+
+  function runImage() {
+    var prompt = (imagePromptInput && imagePromptInput.value.trim()) || "";
+    if (!prompt) {
+      setImageHint("请输入画面描述提示词 (prompt)");
+      if (imagePromptInput) imagePromptInput.focus();
+      return;
+    }
+
+    var args = { prompt: prompt };
+    var nameVal = imageNameInput ? imageNameInput.value.trim() : "";
+    if (nameVal) args.image_name = nameVal;
+
+    var ratioVal = imageAspectSelect ? imageAspectSelect.value : "1:1";
+    if (ratioVal) args.aspect_ratio = ratioVal;
+
+    var urlLines = imageUrlsInput ? imageUrlsInput.value.split("\\n").map(function (s) { return s.trim(); }).filter(Boolean) : [];
+    if (urlLines.length) args.image_urls = urlLines;
+
+    if (imageFiles.length) {
+      args.images = imageFiles.map(function (f) {
+        return { data: f.data, mimeType: f.mimeType };
+      });
+    }
+
+    if (imageAbort) imageAbort.abort();
+    imageAbort = new AbortController();
+    var t0 = Date.now();
+
+    var runBtn = document.getElementById("pg-image-run");
+    var abortBtn = document.getElementById("pg-image-abort");
+    var meta = document.getElementById("pg-image-meta");
+    var body = document.getElementById("pg-image-body");
+    var copyBtn = document.getElementById("pg-image-copy-btn");
+    var viewModes = document.getElementById("pg-image-view-modes");
+
+    if (runBtn) runBtn.disabled = true;
+    if (abortBtn) abortBtn.style.display = "inline-flex";
+    if (copyBtn) copyBtn.style.display = "none";
+    if (viewModes) viewModes.style.display = "none";
+
+    setImageHint("正在调用 POST /mcp (generate_image)…");
+    if (meta) meta.innerHTML = '<span class="status-tag ok" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">RUNNING</span>';
+
+    if (body) {
+      body.innerHTML = '<div class="pg-loading-state">' +
+        '<div class="pg-spinner"></div>' +
+        '<div style="font-weight: 600; color: #fff;">正在执行 Imagen 3 生图（通常需 5-15 秒）…</div>' +
+        '<div class="pg-loading-timer" id="pg-image-live-timer">0.0s</div>' +
+        '<div class="hint-text" style="font-size: 12px;">方法: tools/call · 工具: generate_image · 比例: ' + escapeHtmlJs(ratioVal) + '</div>' +
+      '</div>';
+    }
+
+    if (imageTimer) clearInterval(imageTimer);
+    imageTimer = setInterval(function () {
+      var elapsed = ((Date.now() - t0) / 1000).toFixed(1) + "s";
+      setImageHint("生图中… " + elapsed);
+      var timerEl = document.getElementById("pg-image-live-timer");
+      if (timerEl) timerEl.textContent = elapsed;
+    }, 100);
+
+    var payload = {
+      jsonrpc: "2.0",
+      id: Date.now(),
+      method: "tools/call",
+      params: { name: "generate_image", arguments: args }
+    };
+
+    fetch("/mcp", {
+      method: "POST",
+      headers: mcpHeadersForTool(),
+      body: JSON.stringify(payload),
+      signal: imageAbort.signal
+    }).then(function (r) {
+      return r.text().then(function (text) {
+        var json = null;
+        try { json = JSON.parse(text); } catch (e) { json = null; }
+        return { okHttp: r.ok, status: r.status, text: text, json: json };
+      });
+    }).then(function (res) {
+      finishImage(t0, payload, res, args);
+    }).catch(function (err) {
+      if (err && err.name === "AbortError") return;
+      finishImage(t0, payload, { okHttp: false, status: 0, text: String(err && err.message || err), json: null }, args);
+    });
+  }
+
+  function finishImage(t0, payload, res, args) {
+    if (imageTimer) { clearInterval(imageTimer); imageTimer = null; }
+    var ms = Date.now() - t0;
+    var runBtn = document.getElementById("pg-image-run");
+    var abortBtn = document.getElementById("pg-image-abort");
+    var copyBtn = document.getElementById("pg-image-copy-btn");
+    var viewModes = document.getElementById("pg-image-view-modes");
+
+    if (runBtn) runBtn.disabled = false;
+    if (abortBtn) abortBtn.style.display = "none";
+    if (copyBtn) copyBtn.style.display = "inline-flex";
+    if (viewModes) viewModes.style.display = "flex";
+
+    var rpc = res.json;
+    var isError = false;
+    var errMsg = "";
+    if (!res.okHttp) {
+      isError = true;
+      errMsg = (rpc && (rpc.error && rpc.error.message || rpc.error)) || res.text || ("HTTP " + res.status);
+    } else if (rpc && rpc.error) {
+      isError = true;
+      errMsg = rpc.error.message || JSON.stringify(rpc.error);
+    } else if (rpc && rpc.result && rpc.result.isError) {
+      isError = true;
+      errMsg = (rpc.result.content && rpc.result.content[0] && rpc.result.content[0].text) || "tool error";
+    }
+
+    setImageHint(isError ? "生图失败 · 耗时 " + fmtMsJs(ms) : "生图成功 · 耗时 " + fmtMsJs(ms));
+    var meta = document.getElementById("pg-image-meta");
     if (meta) {
       meta.innerHTML = '<span class="status-tag ' + (isError ? "bad" : "ok") + '">' +
         (isError ? "ERR" : "200 OK") + '</span> <span class="mono" style="margin-left: 4px;">⚡ ' + fmtMsJs(ms) + '</span>';
@@ -1564,7 +1883,7 @@ export function playgroundClientJs(): string {
       }
     });
 
-    pgLastResult = {
+    imageLastResult = {
       rpc: rpc,
       rawText: res.text,
       rawJson: prettyJson,
@@ -1575,45 +1894,34 @@ export function playgroundClientJs(): string {
       formattedText: texts.join("\\n\\n")
     };
 
-    var body = document.getElementById("pg-result-body");
-    if (body) body.innerHTML = renderPgBody(pgLastResult);
-
-    // Bind copy buttons in code blocks
+    var body = document.getElementById("pg-image-body");
+    if (body) body.innerHTML = renderImageBody(imageLastResult);
     bindCodeCopyButtons();
 
-    var label = pgTool === "search_web" ? (args.query || "") : (args.prompt || "");
-    pgHistory.unshift({
-      tool: pgTool,
-      label: label,
+    imageHistory.unshift({
+      tool: "generate_image",
+      label: args.prompt || "",
       args: args,
-      result: pgLastResult,
+      result: imageLastResult,
       ok: !isError,
       ms: ms,
       time: Date.now()
     });
-    if (pgHistory.length > 8) pgHistory.length = 8;
-    renderPgHistory();
+    if (imageHistory.length > 8) imageHistory.length = 8;
+    renderImageHistory();
   }
 
-  function renderPgBody(res) {
-    if (pgViewMode === "raw") {
+  function renderImageBody(res) {
+    if (imageViewMode === "raw") {
       var highlighted = syntaxHighlightJson(res.rawJson || res.rawText || "");
       return '<div class="pg-json-view"><pre><code>' + highlighted + '</code></pre></div>';
     }
-
     var html = "";
     if (res.isError) {
       html += '<div class="status-pill bad" style="margin-bottom:14px; width: 100%; border-radius: 8px; padding: 10px 14px; font-size: 13px;">' +
-        '<span style="font-weight: 700; margin-right: 6px;">❌ 调用出错:</span> ' + escapeHtmlJs(String(res.errMsg || "未知错误")) +
+        '<span style="font-weight: 700; margin-right: 6px;">❌ 生图出错:</span> ' + escapeHtmlJs(String(res.errMsg || "未知错误")) +
       '</div>';
     }
-
-    if (res.texts && res.texts.length) {
-      html += renderMarkdown(res.texts.join("\\n\\n"));
-    } else if (!res.isError && (!res.images || !res.images.length)) {
-      html += '<div class="hint-text" style="padding: 20px 0; text-align: center;">没有返回文本内容。</div>';
-    }
-
     if (res.images && res.images.length) {
       html += '<div class="pg-images-grid">' + res.images.map(function (img, i) {
         var src = "data:" + img.mimeType + ";base64," + img.data;
@@ -1635,9 +1943,95 @@ export function playgroundClientJs(): string {
         '</div>';
       }).join("") + '</div>';
     }
-
+    if (res.texts && res.texts.length) {
+      html += '<div style="margin-top: 14px;">' + renderMarkdown(res.texts.join("\\n\\n")) + '</div>';
+    } else if (!res.isError && (!res.images || !res.images.length)) {
+      html += '<div class="hint-text" style="padding: 20px 0; text-align: center;">没有返回图片或文本内容。</div>';
+    }
     return html;
   }
+
+  function renderImageHistory() {
+    var el = document.getElementById("pg-image-history");
+    var clearBtn = document.getElementById("pg-image-clear-history");
+    if (!el) return;
+    if (clearBtn) clearBtn.style.display = imageHistory.length ? "inline-flex" : "none";
+    if (!imageHistory.length) {
+      el.innerHTML = '<span class="hint-text" style="font-size: 12px; padding: 4px 0;">暂无生图调试记录</span>';
+      return;
+    }
+    el.innerHTML = imageHistory.map(function (h, idx) {
+      var q = h.label.length > 30 ? h.label.slice(0, 30) + "…" : h.label;
+      var statusClass = h.ok ? "ok" : "bad";
+      return '<div class="pg-hist-item ' + statusClass + '" data-image-hist-idx="' + idx + '" title="点击回填此记录">' +
+        '<span class="pg-hist-dot ' + statusClass + '"></span>' +
+        '<span>' + escapeHtmlJs(q || "—") + '</span>' +
+        '<span style="color: var(--text-dim); font-size: 10.5px;">' + fmtMsJs(h.ms) + '</span>' +
+      '</div>';
+    }).join("");
+
+    el.querySelectorAll("[data-image-hist-idx]").forEach(function (item) {
+      item.addEventListener("click", function () {
+        var idx = Number(item.getAttribute("data-image-hist-idx") || "0");
+        var h = imageHistory[idx];
+        if (!h) return;
+        if (h.args) {
+          if (imagePromptInput) imagePromptInput.value = h.args.prompt || "";
+          if (imageNameInput) imageNameInput.value = h.args.image_name || "";
+          if (imageAspectSelect && h.args.aspect_ratio) {
+            imageAspectSelect.value = h.args.aspect_ratio;
+            ratioButtons.forEach(function (b) {
+              if (b.getAttribute("data-ratio") === h.args.aspect_ratio) b.classList.add("active");
+              else b.classList.remove("active");
+            });
+          }
+        }
+        if (h.result) {
+          imageLastResult = h.result;
+          var body = document.getElementById("pg-image-body");
+          var meta = document.getElementById("pg-image-meta");
+          var copyBtn = document.getElementById("pg-image-copy-btn");
+          var viewModes = document.getElementById("pg-image-view-modes");
+          if (copyBtn) copyBtn.style.display = "inline-flex";
+          if (viewModes) viewModes.style.display = "flex";
+          if (meta) {
+            meta.innerHTML = '<span class="status-tag ' + (h.ok ? "ok" : "bad") + '">' +
+              (h.ok ? "200 OK" : "ERR") + '</span> <span class="mono" style="margin-left: 4px;">⚡ ' + fmtMsJs(h.ms) + '</span>';
+          }
+          if (body) body.innerHTML = renderImageBody(h.result);
+          bindCodeCopyButtons();
+        }
+        setImageHint("已回填历史生图记录");
+      });
+    });
+  }
+
+  var imageClearHistBtn = document.getElementById("pg-image-clear-history");
+  if (imageClearHistBtn) {
+    imageClearHistBtn.addEventListener("click", function () {
+      imageHistory = [];
+      renderImageHistory();
+    });
+  }
+
+
+  /* =========================================================================
+     GLOBAL SHORTCUTS & HELPERS
+     ========================================================================= */
+  // Ctrl+Enter or Cmd+Enter to run in active view
+  document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      var searchView = document.getElementById("tools-subview-search_web");
+      var imageView = document.getElementById("tools-subview-generate_image");
+      if (searchView && searchView.classList.contains("active")) {
+        e.preventDefault();
+        runSearch();
+      } else if (imageView && imageView.classList.contains("active")) {
+        e.preventDefault();
+        runImage();
+      }
+    }
+  });
 
   function bindCodeCopyButtons() {
     document.querySelectorAll(".btn-copy-code").forEach(function (btn) {
@@ -1767,70 +2161,6 @@ export function playgroundClientJs(): string {
       return out;
     }
     return value;
-  }
-
-  function renderPgHistory() {
-    var el = document.getElementById("pg-history");
-    var clearBtn = document.getElementById("pg-clear-history-btn");
-    if (!el) return;
-    if (clearBtn) clearBtn.style.display = pgHistory.length ? "inline-flex" : "none";
-    if (!pgHistory.length) {
-      el.innerHTML = '<span class="hint-text" style="font-size: 12px; padding: 4px 0;">暂无调试调用记录</span>';
-      return;
-    }
-    el.innerHTML = pgHistory.map(function (h, idx) {
-      var q = h.label.length > 32 ? h.label.slice(0, 32) + "…" : h.label;
-      var statusClass = h.ok ? "ok" : "bad";
-      return '<div class="pg-hist-item ' + statusClass + '" data-hist-idx="' + idx + '" title="点击回填此记录">' +
-        '<span class="pg-hist-dot ' + statusClass + '"></span>' +
-        '<span style="font-weight: 600; color: #fff;">' + escapeHtmlJs(h.tool) + '</span>' +
-        '<span>' + escapeHtmlJs(q || "—") + '</span>' +
-        '<span style="color: var(--text-dim); font-size: 10.5px;">' + fmtMsJs(h.ms) + '</span>' +
-      '</div>';
-    }).join("");
-
-    el.querySelectorAll("[data-hist-idx]").forEach(function (item) {
-      item.addEventListener("click", function () {
-        var idx = Number(item.getAttribute("data-hist-idx") || "0");
-        var h = pgHistory[idx];
-        if (!h) return;
-        setPgTool(h.tool);
-        if (h.tool === "search_web") {
-          var qEl = document.getElementById("pg-query");
-          if (qEl && h.args) qEl.value = h.args.query || "";
-          updateCharCounts();
-        } else {
-          var pEl = document.getElementById("pg-prompt");
-          if (pEl && h.args) pEl.value = h.args.prompt || "";
-          var nEl = document.getElementById("pg-image-name");
-          if (nEl && h.args) nEl.value = h.args.image_name || "";
-          var rEl = document.getElementById("pg-aspect");
-          if (rEl && h.args && h.args.aspect_ratio) {
-            rEl.value = h.args.aspect_ratio;
-            ratioButtons.forEach(function (b) {
-              if (b.getAttribute("data-ratio") === h.args.aspect_ratio) b.classList.add("active");
-              else b.classList.remove("active");
-            });
-          }
-        }
-        if (h.result) {
-          pgLastResult = h.result;
-          var body = document.getElementById("pg-result-body");
-          var meta = document.getElementById("pg-result-meta");
-          var copyBtn = document.getElementById("pg-copy-result-btn");
-          var viewModes = document.getElementById("pg-view-modes");
-          if (copyBtn) copyBtn.style.display = "inline-flex";
-          if (viewModes) viewModes.style.display = "flex";
-          if (meta) {
-            meta.innerHTML = '<span class="status-tag ' + (h.ok ? "ok" : "bad") + '">' +
-              (h.ok ? "200 OK" : "ERR") + '</span> <span class="mono" style="margin-left: 4px;">⚡ ' + fmtMsJs(h.ms) + '</span>';
-          }
-          if (body) body.innerHTML = renderPgBody(h.result);
-          bindCodeCopyButtons();
-        }
-        setPgHint("已回填记录: " + h.tool);
-      });
-    });
   }
 `;
 }
