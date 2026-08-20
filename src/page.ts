@@ -4,7 +4,8 @@ import type { SessionSource } from "./types.ts";
 
 const CSS = `
   :root {
-    --bg-base: #090d16;
+    --bg-base: #080c14;
+    --bg-sidebar: #0d121f;
     --bg-surface: rgba(17, 24, 39, 0.7);
     --bg-surface-elevated: rgba(30, 41, 59, 0.6);
     --bg-card: rgba(15, 23, 42, 0.75);
@@ -25,7 +26,8 @@ const CSS = `
     --warning: #f59e0b;
     --warning-bg: rgba(245, 158, 11, 0.12);
     --warning-border: rgba(245, 158, 11, 0.25);
-    --code-bg: #0d1117;
+    --code-bg: #0b0f19;
+    --sidebar-width: 260px;
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Menlo, monospace;
   }
@@ -39,95 +41,252 @@ const CSS = `
     color: var(--text-main);
     background-color: var(--bg-base);
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent 100%),
-      radial-gradient(ellipse 60% 40% at 100% 20%, rgba(56, 189, 248, 0.08), transparent 100%),
-      radial-gradient(ellipse 50% 30% at 0% 80%, rgba(139, 92, 246, 0.05), transparent 100%);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent 100%),
+      radial-gradient(ellipse 60% 40% at 100% 20%, rgba(56, 189, 248, 0.06), transparent 100%),
+      radial-gradient(ellipse 50% 30% at 0% 80%, rgba(139, 92, 246, 0.04), transparent 100%);
     background-attachment: fixed;
     min-height: 100vh;
-    padding: 32px 20px 80px;
     -webkit-font-smoothing: antialiased;
-  }
-
-  .container {
-    max-width: 980px;
-    margin: 0 auto;
-  }
-
-  /* Header & Hero */
-  header.hero {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    padding-bottom: 28px;
-    border-bottom: 1px solid var(--border-subtle);
-    margin-bottom: 28px;
-    flex-wrap: wrap;
   }
 
-  .brand {
+  /* App Layout */
+  .app-layout {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  aside.sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 20px 16px;
+    backdrop-filter: blur(16px);
+  }
+
+  .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
+    padding: 6px 8px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 20px;
   }
 
-  .logo-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+  .brand-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     background: linear-gradient(135deg, #6366f1, #3b82f6);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px var(--primary-glow);
+    box-shadow: 0 4px 12px var(--primary-glow);
     flex-shrink: 0;
   }
 
-  .logo-icon svg {
-    width: 24px;
-    height: 24px;
+  .brand-logo svg {
+    width: 20px;
+    height: 20px;
     color: #fff;
   }
 
-  .brand-text h1 {
-    font-size: 22px;
+  .brand-title {
+    font-size: 15px;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     color: #fff;
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 2px;
   }
 
-  .brand-text .version-tag {
-    font-family: var(--font-mono);
+  .brand-title .sub {
     font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .version-pill {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 1px 6px;
     border-radius: 9999px;
     background: rgba(99, 102, 241, 0.15);
     color: #818cf8;
     border: 1px solid rgba(99, 102, 241, 0.3);
   }
 
-  .brand-text p {
-    color: var(--text-muted);
-    font-size: 13px;
-    margin-top: 2px;
+  /* Nav items */
+  nav.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
   }
 
-  .header-actions {
+  .nav-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    padding: 8px 10px 4px;
+  }
+
+  .nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 550;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
   }
 
-  .endpoint-badge {
+  .nav-item:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .nav-item.active {
+    color: #fff;
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+  }
+
+  .nav-item svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--text-dim);
+    transition: color 0.15s;
+  }
+
+  .nav-item:hover svg, .nav-item.active svg {
+    color: #818cf8;
+  }
+
+  .nav-item .badge-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+  }
+
+  .nav-item.active .badge-count {
+    background: rgba(99, 102, 241, 0.3);
+    color: #c7d2fe;
+  }
+
+  /* Sidebar Footer */
+  .sidebar-footer {
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .server-status-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .server-status-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  /* Main Content Area */
+  main.main-content {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - var(--sidebar-width));
+  }
+
+  /* Top Bar */
+  header.top-bar {
+    height: 64px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(8, 12, 20, 0.65);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    gap: 16px;
+  }
+
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .view-title {
+    font-size: 16px;
+    font-weight: 650;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .endpoint-pill {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: var(--bg-surface);
+    background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--border-subtle);
     padding: 6px 12px;
     border-radius: 8px;
@@ -136,7 +295,7 @@ const CSS = `
     color: var(--text-main);
   }
 
-  .endpoint-badge .method {
+  .endpoint-pill .method {
     font-weight: 700;
     color: #38bdf8;
     font-size: 11px;
@@ -158,7 +317,28 @@ const CSS = `
     background: rgba(255, 255, 255, 0.1);
   }
 
-  /* Section cards */
+  /* View Panels */
+  .content-body {
+    padding: 32px;
+    max-width: 1100px;
+    width: 100%;
+  }
+
+  .view-panel {
+    display: none;
+  }
+
+  .view-panel.active {
+    display: block;
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Section Cards */
   .section-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
@@ -264,9 +444,7 @@ const CSS = `
     color: #fff;
   }
 
-  .btn:active {
-    transform: translateY(0);
-  }
+  .btn:active { transform: translateY(0); }
 
   .btn.ghost {
     background: rgba(255, 255, 255, 0.05);
@@ -351,7 +529,7 @@ const CSS = `
     line-height: 1.5;
   }
 
-  /* Configuration / Tabs */
+  /* Tabs */
   .tabs-nav {
     display: flex;
     gap: 6px;
@@ -508,13 +686,8 @@ const CSS = `
     color: var(--text-main);
   }
 
-  tr:last-child td {
-    border-bottom: 0;
-  }
-
-  tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
-  }
+  tr:last-child td { border-bottom: 0; }
+  tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
   td.mono {
     font-family: var(--font-mono);
@@ -523,9 +696,7 @@ const CSS = `
     white-space: nowrap;
   }
 
-  td.q {
-    word-break: break-word;
-  }
+  td.q { word-break: break-word; }
 
   .status-tag {
     display: inline-flex;
@@ -538,15 +709,8 @@ const CSS = `
     text-transform: uppercase;
   }
 
-  .status-tag.ok {
-    background: var(--success-bg);
-    color: #34d399;
-  }
-
-  .status-tag.bad {
-    background: var(--danger-bg);
-    color: #f87171;
-  }
+  .status-tag.ok { background: var(--success-bg); color: #34d399; }
+  .status-tag.bad { background: var(--danger-bg); color: #f87171; }
 
   /* Tools List */
   .tools-list {
@@ -770,20 +934,28 @@ const CSS = `
   a { color: #818cf8; text-decoration: none; }
   a:hover { text-decoration: underline; }
 
-  /* Utility / Transitions */
-  .fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 640px) {
-    body { padding: 20px 14px 60px; }
-    .section-card { padding: 18px 16px; }
-    .auth-card { padding: 24px 20px; }
-    .header-actions { width: 100%; justify-content: space-between; }
+  @media (max-width: 820px) {
+    aside.sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    }
+    aside.sidebar.open {
+      transform: translateX(0);
+    }
+    main.main-content {
+      margin-left: 0;
+      width: 100%;
+    }
+    .mobile-menu-btn {
+      display: inline-flex;
+    }
+    header.top-bar {
+      padding: 0 16px;
+    }
+    .content-body {
+      padding: 20px 14px 60px;
+    }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
 `;
@@ -824,12 +996,12 @@ export function landingHtml(opts: {
   <style>${CSS}</style>
 </head>
 <body data-origin="${escapeHtml(opts.origin)}" data-auth="${opts.authRequired ? "1" : "0"}">
-<div class="container fade-in">
+<div class="app-layout">
 
-  <!-- Header -->
-  <header class="hero">
-    <div class="brand">
-      <div class="logo-icon">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="app-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -837,121 +1009,176 @@ export function landingHtml(opts: {
           <path d="M8 11h6"></path>
         </svg>
       </div>
-      <div class="brand-text">
-        <h1>${SERVER_NAME} <span class="version-tag">${SERVER_VERSION}</span></h1>
-        <p>Streamable HTTP MCP · 实时搜索与图像生成服务</p>
-      </div>
-    </div>
-    <div class="header-actions">
-      <div class="endpoint-badge" title="MCP Endpoint">
-        <span class="method">POST</span>
-        <code>${escapeHtml(opts.origin)}/mcp</code>
-        <button type="button" class="copy-btn-mini" onclick="navigator.clipboard.writeText('${escapeHtml(opts.origin)}/mcp')" title="复制端点">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-        </button>
-      </div>
-      <span class="status-pill ${opts.authRequired ? "warn" : "ok"}">
-        <span class="pulse-dot"></span>
-        ${opts.authRequired ? "Bearer Auth 开启" : "公开端点"}
-      </span>
-    </div>
-  </header>
-
-  <!-- Session Section -->
-  <section class="section-card" id="login-section">
-    <div class="card-header">
-      <h2 id="login-title">
-        <span class="section-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <div class="brand-title">
+        <span>${SERVER_NAME}</span>
+        <span class="sub">
+          MCP Server <span class="version-pill">${SERVER_VERSION}</span>
         </span>
-        Google 授权状态
-      </h2>
-      <div>
-        Session: <span id="session-status" data-source="${opts.session}" class="status-pill ${opts.session === "missing" ? "bad" : "ok"}"><span class="pulse-dot"></span>${escapeHtml(sessionLabel)}</span>
       </div>
     </div>
 
-    <div class="session-card-inner">
-      <div class="session-info">
-        <div class="session-account-row" id="login-account" hidden>
-          <span>绑定账号:</span>
-          <span id="login-email" class="email ok"></span>
+    <nav class="sidebar-nav">
+      <div class="nav-group-title">控制台导航</div>
+      <a class="nav-item active" data-view="config" href="#config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        <span>快速配置与 Prompt</span>
+      </a>
+      <a class="nav-item" data-view="tools" href="#tools">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+        <span>工具列表</span>
+        <span class="badge-count">2</span>
+      </a>
+      <a class="nav-item" data-view="metrics" href="#metrics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        <span>服务监控与日志</span>
+        <span class="pulse-dot" style="margin-left: auto; color: #34d399;"></span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="server-status-card">
+        <div class="server-status-top">
+          <span>协议支持</span>
+          <span style="color: #38bdf8; font-weight: 600;">Streamable HTTP</span>
         </div>
-        <p class="hint-text" id="login-hint">${escapeHtml(hint)}</p>
-      </div>
-      <div class="session-actions">
-        <a class="btn btn-google" id="login-btn" href="/oauth/login">
-          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
-          Sign in with Google
-        </a>
-        <button type="button" class="btn danger" id="logout-btn" hidden>退出登录</button>
+        <div style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">
+          POST /mcp
+        </div>
       </div>
     </div>
-  </section>
+  </aside>
 
-  <!-- Agent Config Section -->
-  <section class="section-card">
-    <div class="card-header">
-      <h2>
-        <span class="section-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-        </span>
-        给 Agent 的配置 prompt
-      </h2>
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span id="copy-agent-status" class="hint-text ok"></span>
-        <button type="button" class="btn" id="copy-agent-prompt">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          一键复制
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button type="button" class="mobile-menu-btn" id="mobile-menu-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
+        <span class="view-title" id="current-view-title">快速配置与 Prompt</span>
       </div>
-    </div>
 
-    <!-- Client selector tabs -->
-    <div class="tabs-nav">
-      <button type="button" class="tab-btn active" data-tab="prompt">Agent 全量 Prompt (推荐)</button>
-      <button type="button" class="tab-btn" data-tab="grok">Grok (TOML)</button>
-      <button type="button" class="tab-btn" data-tab="claude">Claude (JSON)</button>
-      <button type="button" class="tab-btn" data-tab="cursor">Cursor / VS Code (JSON)</button>
-      <button type="button" class="tab-btn" data-tab="curl">cURL 调试</button>
-    </div>
-
-    <div class="code-container">
-      <div class="code-header">
-        <span id="code-snippet-type">AGENT_PROMPT.md</span>
-        <span>UTF-8</span>
-      </div>
-      <pre id="agent-prompt">${escapeHtml(prompt)}</pre>
-    </div>
-
-    <p class="hint-text" style="margin-top: 12px;">
-      复制后直接发给 Grok / Claude / Cursor，让它自动写入 MCP 配置。登录成功后 prompt 会自动附加 <code>X-Agy-Refresh-Token</code>（保存在本地 localStorage）。也可以通过 <code>wrangler secret put AGY_REFRESH_TOKEN</code> 持久化到 Cloudflare 服务端。
-    </p>
-  </section>
-
-  <!-- Tools Section -->
-  <section class="section-card">
-    <div class="card-header">
-      <h2>工具</h2>
-      <span class="hint-text">连上 <code>/mcp</code> 后 Agent 可调用的 2 个工具</span>
-    </div>
-    ${toolsHtml()}
-  </section>
-
-  <!-- Metrics Section -->
-  <section class="section-card">
-    <div class="card-header">
-      <h2>
-        <span class="section-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      <div class="top-bar-right">
+        <div class="endpoint-pill" title="MCP Endpoint">
+          <span class="method">POST</span>
+          <code>${escapeHtml(opts.origin)}/mcp</code>
+          <button type="button" class="copy-btn-mini" onclick="navigator.clipboard.writeText('${escapeHtml(opts.origin)}/mcp')" title="复制端点">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+        <span class="status-pill ${opts.authRequired ? "warn" : "ok"}">
+          <span class="pulse-dot"></span>
+          ${opts.authRequired ? "Bearer Auth 开启" : "公开端点"}
         </span>
-        监控
-      </h2>
-      <span class="hint-text">每 15 秒自动刷新</span>
-    </div>
-    ${metricsHtml(opts.metrics)}
-  </section>
+      </div>
+    </header>
 
+    <div class="content-body">
+
+      <!-- View 1: Config & Prompt -->
+      <div class="view-panel active" id="view-config">
+        <!-- Session Section -->
+        <section class="section-card" id="login-section">
+          <div class="card-header">
+            <h2 id="login-title">
+              <span class="section-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              Google 授权状态
+            </h2>
+            <div>
+              Session: <span id="session-status" data-source="${opts.session}" class="status-pill ${opts.session === "missing" ? "bad" : "ok"}"><span class="pulse-dot"></span>${escapeHtml(sessionLabel)}</span>
+            </div>
+          </div>
+
+          <div class="session-card-inner">
+            <div class="session-info">
+              <div class="session-account-row" id="login-account" hidden>
+                <span>绑定账号:</span>
+                <span id="login-email" class="email ok"></span>
+              </div>
+              <p class="hint-text" id="login-hint">${escapeHtml(hint)}</p>
+            </div>
+            <div class="session-actions">
+              <a class="btn btn-google" id="login-btn" href="/oauth/login">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                Sign in with Google
+              </a>
+              <button type="button" class="btn danger" id="logout-btn" hidden>退出登录</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Agent Config Prompt -->
+        <section class="section-card">
+          <div class="card-header">
+            <h2>
+              <span class="section-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              </span>
+              给 Agent 的配置 prompt
+            </h2>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="copy-agent-status" class="hint-text ok"></span>
+              <button type="button" class="btn" id="copy-agent-prompt">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                一键复制
+              </button>
+            </div>
+          </div>
+
+          <div class="tabs-nav">
+            <button type="button" class="tab-btn active" data-tab="prompt">Agent 全量 Prompt (推荐)</button>
+            <button type="button" class="tab-btn" data-tab="grok">Grok (TOML)</button>
+            <button type="button" class="tab-btn" data-tab="claude">Claude (JSON)</button>
+            <button type="button" class="tab-btn" data-tab="cursor">Cursor / VS Code (JSON)</button>
+            <button type="button" class="tab-btn" data-tab="curl">cURL 调试</button>
+          </div>
+
+          <div class="code-container">
+            <div class="code-header">
+              <span id="code-snippet-type">AGENT_PROMPT.md</span>
+              <span>UTF-8</span>
+            </div>
+            <pre id="agent-prompt">${escapeHtml(prompt)}</pre>
+          </div>
+
+          <p class="hint-text" style="margin-top: 12px;">
+            复制后直接发给 Grok / Claude / Cursor，让它自动写入 MCP 配置。登录成功后 prompt 会自动附加 <code>X-Agy-Refresh-Token</code>（保存在本地 localStorage）。也可以通过 <code>wrangler secret put AGY_REFRESH_TOKEN</code> 持久化到 Cloudflare 服务端。
+          </p>
+        </section>
+      </div>
+
+      <!-- View 2: Tools -->
+      <div class="view-panel" id="view-tools">
+        <section class="section-card">
+          <div class="card-header">
+            <h2>工具</h2>
+            <span class="hint-text">连上 <code>/mcp</code> 后 Agent 可调用的 2 个工具</span>
+          </div>
+          ${toolsHtml()}
+        </section>
+      </div>
+
+      <!-- View 3: Metrics & Monitoring -->
+      <div class="view-panel" id="view-metrics">
+        <section class="section-card">
+          <div class="card-header">
+            <h2>
+              <span class="section-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              </span>
+              监控
+            </h2>
+            <span class="hint-text">每 15 秒自动刷新</span>
+          </div>
+          ${metricsHtml(opts.metrics)}
+        </section>
+      </div>
+
+    </div>
+  </main>
 </div>
 
 ${browserSessionScript()}
@@ -971,7 +1198,7 @@ export function oauthWaitHtml(opts: { authUrl: string; error?: string }): string
 <body>
   <div class="auth-card fade-in">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-      <div class="logo-icon" style="width: 36px; height: 36px;">
+      <div class="brand-logo" style="width: 36px; height: 36px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
       </div>
       <h1>完成 Google 授权</h1>
@@ -1159,7 +1386,7 @@ function metricsHtml(m: MetricsSnapshot): string {
           </tr>`;
         })
         .join("")
-    : `<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 24px 14px;">还没有工具调用</td></tr>`;
+    : `<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 24px 14px;">还没有 search_web 调用</td></tr>`;
 
   return `
 <div class="stats-grid">
@@ -1264,6 +1491,77 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     }
   }
 
+  // Sidebar navigation & View switching
+  var viewTitles = {
+    config: "快速配置与 Prompt",
+    tools: "工具列表 (Tools)",
+    metrics: "服务监控与日志 (Metrics)"
+  };
+
+  function switchView(viewName) {
+    var validViews = ["config", "tools", "metrics"];
+    if (validViews.indexOf(viewName) === -1) viewName = "config";
+    
+    // Update nav items
+    var navItems = document.querySelectorAll(".nav-item");
+    navItems.forEach(function (item) {
+      if (item.getAttribute("data-view") === viewName) {
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
+      }
+    });
+
+    // Update view panels
+    var panels = document.querySelectorAll(".view-panel");
+    panels.forEach(function (p) {
+      if (p.id === "view-" + viewName) {
+        p.classList.add("active");
+      } else {
+        p.classList.remove("active");
+      }
+    });
+
+    // Update topbar title
+    var titleEl = document.getElementById("current-view-title");
+    if (titleEl && viewTitles[viewName]) {
+      titleEl.textContent = viewTitles[viewName];
+    }
+
+    // Close mobile drawer if open
+    var sidebar = document.getElementById("app-sidebar");
+    if (sidebar) sidebar.classList.remove("open");
+  }
+
+  // Handle URL hash changes
+  function handleHash() {
+    var hash = location.hash.replace(/^#/, "");
+    if (hash) switchView(hash);
+  }
+
+  window.addEventListener("hashchange", handleHash);
+  if (location.hash) handleHash();
+
+  var navLinks = document.querySelectorAll(".nav-item");
+  navLinks.forEach(function (link) {
+    link.addEventListener("click", function (e) {
+      var view = link.getAttribute("data-view");
+      if (view) {
+        switchView(view);
+      }
+    });
+  });
+
+  // Mobile menu button
+  var mobileBtn = document.getElementById("mobile-menu-btn");
+  if (mobileBtn) {
+    mobileBtn.addEventListener("click", function () {
+      var sidebar = document.getElementById("app-sidebar");
+      if (sidebar) sidebar.classList.toggle("open");
+    });
+  }
+
+  // Client configuration snippet tabs
   var currentTab = "prompt";
   function updateCodeSnippet() {
     var promptEl = document.getElementById("agent-prompt");
@@ -1282,7 +1580,7 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       if (currentRefreshToken) headersObj["X-Agy-Refresh-Token"] = currentRefreshToken;
       var claudeConfig = {
         mcpServers: {
-          "agy": {
+          "agy-web-search": {
             url: origin + "/mcp",
             headers: Object.keys(headersObj).length ? headersObj : undefined
           }
@@ -1296,7 +1594,7 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       if (currentRefreshToken) headersObj["X-Agy-Refresh-Token"] = currentRefreshToken;
       var cursorConfig = {
         mcpServers: {
-          "agy": {
+          "agy-web-search": {
             url: origin + "/mcp",
             headers: Object.keys(headersObj).length ? headersObj : undefined
           }
