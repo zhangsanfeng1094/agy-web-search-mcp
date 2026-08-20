@@ -14,8 +14,8 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["MetricsStore"]
+new_sqlite_classes = ["MetricsStore"]
 
 [[migrations]]
 tag = "v2"
-new_classes = ["FilesStore"]
+new_sqlite_classes = ["FilesStore"]
