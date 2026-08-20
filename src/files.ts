@@ -1,6 +1,6 @@
 import type { AppEnv } from "./types.ts";
 
-const MAX_FILES = 10;
+export const MAX_FILES = 30;
 const STORE_KEY = "s";
 
 export type StoredFile = {
@@ -50,53 +50,57 @@ export type FilesClient = {
   get(id: string): Promise<StoredFile | undefined>;
 };
 
-export function filesClient(env: AppEnv = {}): FilesClient {
-  const ns = env.FILES;
-  if (!ns) {
-    return {
-      put: async (file) => {
-        const stored: StoredFile = {
-          id: file.id || newId(),
-          name: file.name,
-          mimeType: file.mimeType,
-          data: file.data,
-          at: Date.now(),
-        };
-        const next = putFile(mem, stored);
-        mem.length = 0;
-        mem.push(...next);
-        return stored.id;
-      },
-      get: async (id) => mem.find((f) => f.id === id),
-    };
+export function fileIdFromUrl(url: string): string | undefined {
+  try {
+    const path = new URL(url).pathname;
+    const m = path.match(/^\/files\/([a-fA-F0-9]{8,32})(?:\/|$)/);
+    return m?.[1]?.toLowerCase();
+  } catch {
+    return undefined;
   }
-  const stub = ns.get(ns.idFromName("global"));
+}
+
+export function filesClient(env: AppEnv = {}): FilesClient {
+  const stub = env.FILES?.get(env.FILES.idFromName("global"));
   return {
     put: async (file) => {
       const stored: StoredFile = {
-        id: file.id || newId(),
+        id: (file.id || newId()).toLowerCase(),
         name: file.name,
         mimeType: file.mimeType,
         data: file.data,
         at: Date.now(),
       };
-      await stub.fetch("https://files/put", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(stored),
-      });
+      remember(stored);
+      if (stub) {
+        const resp = await stub.fetch("https://files/put", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(stored),
+        });
+        if (!resp.ok) throw new Error(`file store http ${resp.status}`);
+      }
       return stored.id;
     },
     get: async (id) => {
-      try {
-        const resp = await stub.fetch(`https://files/get?id=${encodeURIComponent(id)}`);
-        if (!resp.ok) return undefined;
-        return (await resp.json()) as StoredFile;
-      } catch {
-        return undefined;
+      const key = id.toLowerCase();
+      if (stub) {
+        try {
+          const resp = await stub.fetch(`https://files/get?id=${encodeURIComponent(key)}`);
+          if (resp.ok) return (await resp.json()) as StoredFile;
+        } catch {
+          // fall through to process memory
+        }
       }
+      return mem.find((f) => f.id === key);
     },
   };
+}
+
+function remember(file: StoredFile): void {
+  const next = putFile(mem, file);
+  mem.length = 0;
+  mem.push(...next);
 }
 
 export function resetFiles(): void {

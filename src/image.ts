@@ -4,6 +4,7 @@ import {
   cloudPost,
   cloudProject,
 } from "./cloud.ts";
+import { MAX_FILES, fileIdFromUrl, filesClient } from "./files.ts";
 
 export const IMAGE_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9"] as const;
 export type ImageAspectRatio = (typeof IMAGE_ASPECT_RATIOS)[number];
@@ -100,7 +101,7 @@ export async function generateImage(
   const model = env.AGY_IMAGE_MODEL?.trim() || (await resolveImageModel(env, session));
   const parts: Array<Record<string, unknown>> = [{ text: input.prompt }];
   for (const url of input.imageUrls ?? []) {
-    parts.push({ inlineData: await fetchReference(url) });
+    parts.push({ inlineData: await fetchReference(url, env) });
   }
   const { status, text } = await cloudPost(env, session, "generateContent", {
     project: cloudProject(env),
@@ -154,7 +155,10 @@ async function resolveImageModel(env: AppEnv, session: RequestSession): Promise<
   return DEFAULT_IMAGE_MODEL;
 }
 
-async function fetchReference(url: string): Promise<{ mimeType: string; data: string }> {
+export async function fetchReference(
+  url: string,
+  env: AppEnv = {},
+): Promise<{ mimeType: string; data: string }> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -164,8 +168,20 @@ async function fetchReference(url: string): Promise<{ mimeType: string; data: st
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(`image url must be http(s): ${url}`);
   }
+  const fileId = fileIdFromUrl(url);
+  if (fileId) {
+    const stored = await filesClient(env).get(fileId);
+    if (stored?.data) return { mimeType: stored.mimeType, data: stored.data };
+  }
   const resp = await fetch(parsed.href);
-  if (!resp.ok) throw new Error(`reference image http ${resp.status}: ${url}`);
+  if (!resp.ok) {
+    if (fileId) {
+      throw new Error(
+        `reference image not found (${resp.status}). generated files only keep the last ${MAX_FILES}; pass a public image URL or generate again: ${url}`,
+      );
+    }
+    throw new Error(`reference image http ${resp.status}: ${url}`);
+  }
   const mime = (resp.headers.get("content-type") || "image/png").split(";")[0].trim();
   if (!mime.startsWith("image/")) throw new Error(`reference is not an image: ${url}`);
   const buf = new Uint8Array(await resp.arrayBuffer());
