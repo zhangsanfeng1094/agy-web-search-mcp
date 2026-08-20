@@ -46,6 +46,8 @@ bun run dev
 
 打开 `http://127.0.0.1:8787/` 登录。本机回调由服务自己接住。如果本机已经 `agy` 登录过，也会自动读 `~/.gemini/antigravity-cli/antigravity-oauth-token`。
 
+侧边栏 **工具测试** 可以直接调 `search_web` / `generate_image`（和 Agent 一样 `POST /mcp`），不必先配 MCP 客户端。生图支持上传本地参考图，浏览器会读成 base64。调用会出现在监控里。
+
 ## Grok
 
 登录成功后首页点 **一键复制**，把 prompt 贴给 Agent，让它写入 MCP 配置。token 来自这个浏览器的 `localStorage`。远程一般是：

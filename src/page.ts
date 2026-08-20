@@ -1,5 +1,6 @@
 import { generateImageToolDef, searchToolDef, SERVER_NAME, SERVER_VERSION } from "./mcp.ts";
 import type { MetricsSnapshot } from "./metrics.ts";
+import { PLAYGROUND_CSS, playgroundClientJs, playgroundHtml } from "./playground.ts";
 import type { SessionSource } from "./types.ts";
 
 const CSS = `
@@ -958,7 +959,7 @@ const CSS = `
     }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
-`;
+` + PLAYGROUND_CSS;
 
 export const SESSION_STORAGE_KEY = "agy-web-search-session";
 
@@ -1021,6 +1022,10 @@ export function landingHtml(opts: {
       <a class="nav-item active" data-view="config" href="#config">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
         <span>快速配置与 Prompt</span>
+      </a>
+      <a class="nav-item" data-view="playground" href="#playground">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>工具测试</span>
       </a>
       <a class="nav-item" data-view="tools" href="#tools">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
@@ -1149,7 +1154,12 @@ export function landingHtml(opts: {
         </section>
       </div>
 
-      <!-- View 2: Tools -->
+      <!-- View 2: Playground -->
+      <div class="view-panel" id="view-playground">
+        ${playgroundHtml(opts.authRequired)}
+      </div>
+
+      <!-- View 3: Tools -->
       <div class="view-panel" id="view-tools">
         <section class="section-card">
           <div class="card-header">
@@ -1354,6 +1364,7 @@ function toolCard(def: ReturnType<typeof searchToolDef>): string {
         <span class="tool-name">${escapeHtml(copy?.title || def.name)}</span>
         <span class="tool-badge"><code>${escapeHtml(def.name)}</code></span>
       </div>
+      <a class="btn ghost" href="#playground" data-pg-tool="${escapeHtml(def.name)}">打开测试</a>
     </div>
     <p class="tool-summary">${escapeHtml(copy?.summary || def.description)}</p>
     <div class="params-box">
@@ -1493,13 +1504,14 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
   // Sidebar navigation & View switching
   var viewTitles = {
     config: "快速配置与 Prompt",
+    playground: "工具测试",
     tools: "工具列表 (Tools)",
     metrics: "服务监控与日志 (Metrics)"
   };
 
   var VIEW_KEY = "agy-landing-view";
   function switchView(viewName) {
-    var validViews = ["config", "tools", "metrics"];
+    var validViews = ["config", "playground", "tools", "metrics"];
     if (validViews.indexOf(viewName) === -1) viewName = "config";
 
     // Update nav items
@@ -1766,6 +1778,7 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     }
     return lines.join("\\n");
   }
+${playgroundClientJs()}
 })();
 </script>`;
 }

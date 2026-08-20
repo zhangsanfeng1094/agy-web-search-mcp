@@ -44,6 +44,28 @@ describe("browser session storage", () => {
     expect(html).toContain("agy-landing-view");
     expect(html).toContain("agy-landing-config-tab");
     expect(html).toContain("setInterval(refreshMetrics, 15000)");
+    expect(html).toContain('id="view-playground"');
+    expect(html).toContain('data-view="playground"');
+    expect(html).toContain("工具测试");
+    expect(html).toContain('id="pg-form"');
+    expect(html).toContain('id="pg-query"');
+    expect(html).toContain('id="pg-prompt"');
+    expect(html).toContain('fetch("/mcp"');
+    expect(html).toContain("X-Agy-Refresh-Token");
+    expect(html).toContain("打开测试");
+    expect(html).not.toContain('id="pg-auth"');
+  });
+
+  test("playground shows bearer field when MCP auth is on", () => {
+    const html = landingHtml({
+      session: "missing",
+      authRequired: true,
+      origin: "https://example.workers.dev",
+      oauthManual: true,
+      metrics,
+    });
+    expect(html).toContain('id="pg-auth"');
+    expect(html).toContain("MCP_AUTH_TOKEN");
   });
 
   test("agent prompt includes url, tool, and tokens", () => {
