@@ -45,7 +45,11 @@ describe("browser session storage", () => {
     expect(html).toContain("agy-landing-config-tab");
     expect(html).toContain("setInterval(refreshMetrics, 15000)");
     expect(html).toContain('id="view-playground"');
-    expect(html).toContain('data-view="playground"');
+    expect(html).toContain('data-view="tools"');
+    expect(html).toContain('id="tools-subview-list"');
+    expect(html).toContain('id="tools-subview-test"');
+    expect(html).toContain('id="tools-back-btn"');
+    expect(html).toContain("返回工具列表");
     expect(html).toContain("工具测试");
     expect(html).toContain('id="pg-form"');
     expect(html).toContain('id="pg-query"');
@@ -54,6 +58,31 @@ describe("browser session storage", () => {
     expect(html).toContain("X-Agy-Refresh-Token");
     expect(html).toContain("打开测试");
     expect(html).not.toContain('id="pg-auth"');
+  });
+
+  test("tool testing is in secondary subview of tools list", () => {
+    const html = landingHtml({
+      session: "missing",
+      authRequired: false,
+      origin: "https://example.workers.dev",
+      oauthManual: true,
+      metrics,
+    });
+    // Level 1 view has tools list with test links
+    expect(html).toContain('id="tools-subview-list"');
+    expect(html).toContain('href="#tools/search_web"');
+    expect(html).toContain('href="#tools/generate_image"');
+
+    // Level 2 subview has breadcrumb and playground
+    expect(html).toContain('id="tools-subview-test"');
+    expect(html).toContain('id="tools-back-btn"');
+    expect(html).toContain('id="breadcrumb-tools-list"');
+    expect(html).toContain('id="breadcrumb-tool-name"');
+    expect(html).toContain('id="view-playground"');
+
+    // Client routing handles secondary views
+    expect(html).toContain("showToolsSubview");
+    expect(html).toContain('rawHash.indexOf("tools/") === 0');
   });
 
   test("playground shows bearer field when MCP auth is on", () => {

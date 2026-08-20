@@ -713,7 +713,101 @@ const CSS = `
   .status-tag.ok { background: var(--success-bg); color: #34d399; }
   .status-tag.bad { background: var(--danger-bg); color: #f87171; }
 
-  /* Tools List */
+  /* Tools List & Subviews */
+  .tools-subview {
+    display: none;
+  }
+
+  .tools-subview.active {
+    display: block;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .subpage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 10px 16px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    flex-wrap: wrap;
+  }
+
+  .subpage-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 550;
+    padding: 6px 12px;
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .btn-back:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-highlight);
+    text-decoration: none;
+    transform: translateX(-2px);
+  }
+
+  .breadcrumb-trail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .breadcrumb-item {
+    color: #818cf8;
+    text-decoration: none;
+    font-weight: 550;
+    cursor: pointer;
+  }
+
+  .breadcrumb-item:hover {
+    text-decoration: underline;
+  }
+
+  .breadcrumb-sep {
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  .breadcrumb-current {
+    color: var(--text-main);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .breadcrumb-current code {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
   .tools-list {
     display: flex;
     flex-direction: column;
@@ -1023,10 +1117,6 @@ export function landingHtml(opts: {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
         <span>快速配置与 Prompt</span>
       </a>
-      <a class="nav-item" data-view="playground" href="#playground">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        <span>工具测试</span>
-      </a>
       <a class="nav-item" data-view="tools" href="#tools">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
         <span>工具列表</span>
@@ -1154,20 +1244,44 @@ export function landingHtml(opts: {
         </section>
       </div>
 
-      <!-- View 2: Playground -->
-      <div class="view-panel" id="view-playground">
-        ${playgroundHtml(opts.authRequired)}
-      </div>
-
-      <!-- View 3: Tools -->
+      <!-- View 2: Tools (Primary: List, Secondary: Test / Playground) -->
       <div class="view-panel" id="view-tools">
-        <section class="section-card">
-          <div class="card-header">
-            <h2>工具</h2>
-            <span class="hint-text">连上 <code>/mcp</code> 后 Agent 可调用的 2 个工具</span>
+        <!-- Sub-view 1: Tools List (一级页面) -->
+        <div class="tools-subview active" id="tools-subview-list">
+          <section class="section-card">
+            <div class="card-header">
+              <div>
+                <h2>工具</h2>
+                <span class="hint-text">连上 <code>/mcp</code> 后 Agent 可调用的 2 个工具</span>
+              </div>
+              <a class="btn ghost" href="#tools/search_web" data-pg-tool="search_web">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                测试控制台
+              </a>
+            </div>
+            ${toolsHtml()}
+          </section>
+        </div>
+
+        <!-- Sub-view 2: Tool Test / Playground (二级页面) -->
+        <div class="tools-subview" id="tools-subview-test">
+          <div class="subpage-header">
+            <div class="subpage-header-left">
+              <a class="btn ghost btn-back" id="tools-back-btn" href="#tools" title="返回工具列表">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                返回工具列表
+              </a>
+              <div class="breadcrumb-trail">
+                <a class="breadcrumb-item" href="#tools" id="breadcrumb-tools-list">工具列表</a>
+                <span class="breadcrumb-sep">/</span>
+                <span class="breadcrumb-current">工具测试 (<code id="breadcrumb-tool-name">search_web</code>)</span>
+              </div>
+            </div>
           </div>
-          ${toolsHtml()}
-        </section>
+          <div id="view-playground">
+            ${playgroundHtml(opts.authRequired)}
+          </div>
+        </div>
       </div>
 
       <!-- View 3: Metrics & Monitoring -->
@@ -1364,7 +1478,10 @@ function toolCard(def: ReturnType<typeof searchToolDef>): string {
         <span class="tool-name">${escapeHtml(copy?.title || def.name)}</span>
         <span class="tool-badge"><code>${escapeHtml(def.name)}</code></span>
       </div>
-      <a class="btn ghost" href="#playground" data-pg-tool="${escapeHtml(def.name)}">打开测试</a>
+      <a class="btn ghost" href="#tools/${escapeHtml(def.name)}" data-pg-tool="${escapeHtml(def.name)}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        打开测试
+      </a>
     </div>
     <p class="tool-summary">${escapeHtml(copy?.summary || def.description)}</p>
     <div class="params-box">
@@ -1504,14 +1621,43 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
   // Sidebar navigation & View switching
   var viewTitles = {
     config: "快速配置与 Prompt",
-    playground: "工具测试",
     tools: "工具列表 (Tools)",
     metrics: "服务监控与日志 (Metrics)"
   };
 
   var VIEW_KEY = "agy-landing-view";
-  function switchView(viewName) {
-    var validViews = ["config", "playground", "tools", "metrics"];
+  var TOOLS_SUBVIEW_KEY = "agy-landing-tools-subview";
+
+  function showToolsSubview(subview, toolName) {
+    var listView = document.getElementById("tools-subview-list");
+    var testView = document.getElementById("tools-subview-test");
+    var titleEl = document.getElementById("current-view-title");
+    var breadcrumbTool = document.getElementById("breadcrumb-tool-name");
+
+    if (subview === "test") {
+      if (listView) listView.classList.remove("active");
+      if (testView) testView.classList.add("active");
+      if (toolName && typeof window.setPgTool === "function") {
+        window.setPgTool(toolName);
+      }
+      var currentTool = (typeof window.getPgTool === "function" ? window.getPgTool() : toolName) || "search_web";
+      if (breadcrumbTool) breadcrumbTool.textContent = currentTool;
+      if (titleEl) titleEl.textContent = "工具测试 · " + currentTool;
+      try { localStorage.setItem(TOOLS_SUBVIEW_KEY, "test"); } catch (e) {}
+    } else {
+      if (testView) testView.classList.remove("active");
+      if (listView) listView.classList.add("active");
+      if (titleEl) titleEl.textContent = viewTitles.tools;
+      try { localStorage.setItem(TOOLS_SUBVIEW_KEY, "list"); } catch (e) {}
+    }
+  }
+
+  function switchView(viewName, subview, toolName) {
+    if (viewName === "playground") {
+      viewName = "tools";
+      subview = "test";
+    }
+    var validViews = ["config", "tools", "metrics"];
     if (validViews.indexOf(viewName) === -1) viewName = "config";
 
     // Update nav items
@@ -1534,10 +1680,22 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       }
     });
 
-    // Update topbar title
+    // Update topbar title & subviews
     var titleEl = document.getElementById("current-view-title");
-    if (titleEl && viewTitles[viewName]) {
-      titleEl.textContent = viewTitles[viewName];
+    if (viewName === "tools") {
+      if (subview === "test") {
+        showToolsSubview("test", toolName);
+      } else if (subview === "list") {
+        showToolsSubview("list");
+      } else {
+        var savedSub = "list";
+        try { savedSub = localStorage.getItem(TOOLS_SUBVIEW_KEY) || "list"; } catch (e) {}
+        showToolsSubview(savedSub, toolName);
+      }
+    } else {
+      if (titleEl && viewTitles[viewName]) {
+        titleEl.textContent = viewTitles[viewName];
+      }
     }
 
     try { localStorage.setItem(VIEW_KEY, viewName); } catch (e) {}
@@ -1549,14 +1707,35 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
 
   // Handle URL hash changes
   function handleHash() {
-    var hash = location.hash.replace(/^#/, "");
-    if (hash) {
-      switchView(hash);
+    var rawHash = location.hash.replace(/^#/, "");
+    if (!rawHash) {
+      var saved = null;
+      try { saved = localStorage.getItem(VIEW_KEY); } catch (e) {}
+      switchView(saved || "config");
       return;
     }
-    var saved = null;
-    try { saved = localStorage.getItem(VIEW_KEY); } catch (e) {}
-    if (saved) switchView(saved);
+
+    if (rawHash === "playground") {
+      switchView("tools", "test");
+      return;
+    }
+
+    if (rawHash.indexOf("tools/") === 0) {
+      var toolName = rawHash.slice(6);
+      if (toolName === "test") {
+        switchView("tools", "test");
+      } else {
+        switchView("tools", "test", toolName);
+      }
+      return;
+    }
+
+    if (rawHash === "tools") {
+      switchView("tools", "list");
+      return;
+    }
+
+    switchView(rawHash);
   }
 
   window.addEventListener("hashchange", handleHash);
@@ -1567,7 +1746,11 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     link.addEventListener("click", function (e) {
       var view = link.getAttribute("data-view");
       if (view) {
-        switchView(view);
+        if (view === "tools") {
+          switchView("tools", "list");
+        } else {
+          switchView(view);
+        }
       }
     });
   });

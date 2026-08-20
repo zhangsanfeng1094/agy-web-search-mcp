@@ -1122,12 +1122,27 @@ export function playgroundClientJs(): string {
     var imageFields = document.getElementById("pg-fields-generate_image");
     if (searchFields) searchFields.hidden = pgTool !== "search_web";
     if (imageFields) imageFields.hidden = pgTool !== "generate_image";
+
+    var breadcrumbTool = document.getElementById("breadcrumb-tool-name");
+    if (breadcrumbTool) breadcrumbTool.textContent = pgTool;
+
+    var currentViewTitle = document.getElementById("current-view-title");
+    var testSub = document.getElementById("tools-subview-test");
+    if (testSub && testSub.classList.contains("active") && currentViewTitle) {
+      currentViewTitle.textContent = "工具测试 · " + pgTool;
+    }
   }
+  window.setPgTool = setPgTool;
+  window.getPgTool = function () { return pgTool; };
   setPgTool(pgTool);
 
   document.querySelectorAll(".pg-tool-tab, .pg-pick").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      setPgTool(btn.getAttribute("data-tool") || "search_web");
+      var t = btn.getAttribute("data-tool") || "search_web";
+      setPgTool(t);
+      if (location.hash.indexOf("#tools/") === 0) {
+        try { history.replaceState(null, "", "#tools/" + t); } catch (e) {}
+      }
     });
   });
   document.querySelectorAll("[data-pg-tool]").forEach(function (el) {
