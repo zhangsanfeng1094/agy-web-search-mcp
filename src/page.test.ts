@@ -38,6 +38,12 @@ describe("browser session storage", () => {
     expect(html).toContain("aspect_ratio");
     expect(html).toContain("images");
     expect(html).toContain("必填");
+    expect(html).not.toContain('http-equiv="refresh"');
+    expect(html).toContain('id="metrics-root"');
+    expect(html).toContain('fetch("/health"');
+    expect(html).toContain("agy-landing-view");
+    expect(html).toContain("agy-landing-config-tab");
+    expect(html).toContain("setInterval(refreshMetrics, 15000)");
   });
 
   test("agent prompt includes url, tool, and tokens", () => {

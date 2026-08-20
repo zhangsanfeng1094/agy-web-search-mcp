@@ -992,7 +992,6 @@ export function landingHtml(opts: {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${SERVER_NAME} · Streamable HTTP MCP</title>
-  <meta http-equiv="refresh" content="15">
   <style>${CSS}</style>
 </head>
 <body data-origin="${escapeHtml(opts.origin)}" data-auth="${opts.authRequired ? "1" : "0"}">
@@ -1171,9 +1170,9 @@ export function landingHtml(opts: {
               </span>
               监控
             </h2>
-            <span class="hint-text">每 15 秒自动刷新</span>
+            <span class="hint-text">监控数据每 15 秒更新，不会整页刷新</span>
           </div>
-          ${metricsHtml(opts.metrics)}
+          <div id="metrics-root">${metricsHtml(opts.metrics)}</div>
         </section>
       </div>
 
@@ -1498,10 +1497,11 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     metrics: "服务监控与日志 (Metrics)"
   };
 
+  var VIEW_KEY = "agy-landing-view";
   function switchView(viewName) {
     var validViews = ["config", "tools", "metrics"];
     if (validViews.indexOf(viewName) === -1) viewName = "config";
-    
+
     // Update nav items
     var navItems = document.querySelectorAll(".nav-item");
     navItems.forEach(function (item) {
@@ -1528,6 +1528,8 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       titleEl.textContent = viewTitles[viewName];
     }
 
+    try { localStorage.setItem(VIEW_KEY, viewName); } catch (e) {}
+
     // Close mobile drawer if open
     var sidebar = document.getElementById("app-sidebar");
     if (sidebar) sidebar.classList.remove("open");
@@ -1536,11 +1538,17 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
   // Handle URL hash changes
   function handleHash() {
     var hash = location.hash.replace(/^#/, "");
-    if (hash) switchView(hash);
+    if (hash) {
+      switchView(hash);
+      return;
+    }
+    var saved = null;
+    try { saved = localStorage.getItem(VIEW_KEY); } catch (e) {}
+    if (saved) switchView(saved);
   }
 
   window.addEventListener("hashchange", handleHash);
-  if (location.hash) handleHash();
+  handleHash();
 
   var navLinks = document.querySelectorAll(".nav-item");
   navLinks.forEach(function (link) {
@@ -1562,7 +1570,12 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
   }
 
   // Client configuration snippet tabs
+  var TAB_KEY = "agy-landing-config-tab";
   var currentTab = "prompt";
+  try {
+    var savedTab = localStorage.getItem(TAB_KEY);
+    if (savedTab) currentTab = savedTab;
+  } catch (e) {}
   function updateCodeSnippet() {
     var promptEl = document.getElementById("agent-prompt");
     var typeEl = document.getElementById("code-snippet-type");
@@ -1614,15 +1627,20 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     promptEl.textContent = content;
   }
 
-  updateCodeSnippet();
-
   var tabBtns = document.querySelectorAll(".tab-btn");
+  function applyTab(tab) {
+    currentTab = tab || "prompt";
+    tabBtns.forEach(function (b) {
+      if (b.getAttribute("data-tab") === currentTab) b.classList.add("active");
+      else b.classList.remove("active");
+    });
+    try { localStorage.setItem(TAB_KEY, currentTab); } catch (e) {}
+    updateCodeSnippet();
+  }
+  applyTab(currentTab);
   tabBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
-      tabBtns.forEach(function (b) { b.classList.remove("active"); });
-      btn.classList.add("active");
-      currentTab = btn.getAttribute("data-tab") || "prompt";
-      updateCodeSnippet();
+      applyTab(btn.getAttribute("data-tab") || "prompt");
     });
   });
 
@@ -1665,6 +1683,62 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] || c;
     });
   }
+  function fmtMsJs(ms) {
+    return ms >= 1000 ? (ms / 1000).toFixed(ms >= 10000 ? 0 : 1) + "s" : ms + "ms";
+  }
+  function fmtTimeJs(at) {
+    return new Date(at).toISOString().replace("T", " ").slice(0, 19) + "Z";
+  }
+  function statBoxJs(n, label, tone) {
+    return '<div class="stat-card"><div class="l">' + escapeHtmlJs(label) + '</div><div class="n' + (tone ? " " + tone : "") + '">' + escapeHtmlJs(String(n)) + "</div></div>";
+  }
+  function renderMetrics(m) {
+    var rate = m.total ? Math.round((m.ok / m.total) * 100) + "%" : "—";
+    var rows;
+    if (m.recent && m.recent.length) {
+      rows = m.recent.map(function (e) {
+        var err = e.error ? '<div class="bad" style="font-size: 12px; margin-top: 3px;">' + escapeHtmlJs(e.error) + "</div>" : "";
+        return "<tr>" +
+          '<td class="mono">' + escapeHtmlJs(fmtTimeJs(e.at)) + "</td>" +
+          '<td><span class="status-tag ' + (e.ok ? "ok" : "bad") + '">' + (e.ok ? "200 OK" : "ERR") + "</span></td>" +
+          '<td class="mono">' + escapeHtmlJs(fmtMsJs(e.ms)) + "</td>" +
+          '<td class="q"><span style="font-weight: 550; color: #38bdf8; font-family: var(--font-mono); font-size: 12px; margin-right: 6px;">[' +
+          escapeHtmlJs(e.tool || "search_web") + "]</span><span>" + escapeHtmlJs(e.query || "—") + "</span>" + err + "</td></tr>";
+      }).join("");
+    } else {
+      rows = '<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 24px 14px;">还没有 search_web 调用</td></tr>';
+    }
+    var persist = m.persistent
+      ? "跨请求保存在 Cloudflare Durable Object。"
+      : "记在当前进程内存里，重启或 Worker 冷启动会清零。";
+    var since = m.total ? "自 " + escapeHtmlJs(fmtTimeJs(m.startedAt)) + " 起。" : "";
+    return '<div class="stats-grid">' +
+      statBoxJs(String(m.total), "总调用") +
+      statBoxJs(String(m.ok), "成功", "ok") +
+      statBoxJs(String(m.fail), "失败", m.fail ? "bad" : undefined) +
+      statBoxJs(rate, "成功率", m.fail && m.ok === 0 ? "bad" : "ok") +
+      statBoxJs(m.lastMs != null ? fmtMsJs(m.lastMs) : "—", "最近耗时") +
+      statBoxJs(m.avgMs != null ? fmtMsJs(m.avgMs) : "—", "平均耗时") +
+      statBoxJs(m.p95Ms != null ? fmtMsJs(m.p95Ms) : "—", "P95") +
+      statBoxJs(String(m.authFail), "未授权", m.authFail ? "bad" : undefined) +
+      "</div>" +
+      '<div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 6px; flex-wrap: wrap; gap: 8px;">' +
+      '<span class="hint-text">' + since + persist + "</span>" +
+      '<span class="hint-text">显示最近 20 条调用记录</span></div>' +
+      '<div class="table-wrap"><table><thead><tr><th>时间</th><th>状态</th><th>耗时</th><th>查询与工具</th></tr></thead><tbody>' +
+      rows + "</tbody></table></div>";
+  }
+  var metricsRoot = document.getElementById("metrics-root");
+  function refreshMetrics() {
+    if (document.hidden || !metricsRoot) return;
+    fetch("/health", { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (data && data.metrics && metricsRoot) metricsRoot.innerHTML = renderMetrics(data.metrics);
+      })
+      .catch(function () {});
+  }
+  setInterval(refreshMetrics, 15000);
   function grokClientSnippet(origin, authRequired, refreshToken) {
     var headers = [];
     if (authRequired) headers.push('Authorization = "Bearer \${AGY_MCP_TOKEN}"');
