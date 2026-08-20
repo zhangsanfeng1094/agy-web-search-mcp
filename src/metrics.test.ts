@@ -78,7 +78,7 @@ describe("metrics", () => {
     const html = await page.text();
     expect(html).toContain("durable metrics");
     expect(html).toContain("Durable Object");
-    expect(html).not.toContain("还没有 search_web 调用");
+    expect(html).not.toContain("还没有工具调用");
 
     const health = await handleRequest(new Request("http://127.0.0.1/health"), env);
     const json = await health.json();

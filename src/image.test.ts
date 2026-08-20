@@ -16,10 +16,30 @@ describe("generate_image helpers", () => {
       imageName: "fat_cat",
       aspectRatio: "16:9",
       imageUrls: [],
+      images: [],
     });
     expect(parseImageArgs("just a prompt").prompt).toBe("just a prompt");
     expect(() => parseImageArgs({ prompt: "x", aspect_ratio: "7:3" })).toThrow("aspect_ratio");
     expect(() => parseImageArgs({})).toThrow("prompt is required");
+    expect(
+      parseImageArgs({
+        prompt: "edit",
+        images: [{ mimeType: "image/png", data: "aaaa" }],
+        image_urls: ["data:image/jpeg;base64,bbbb"],
+      }),
+    ).toEqual({
+      prompt: "edit",
+      imageName: undefined,
+      aspectRatio: "1:1",
+      imageUrls: [],
+      images: [
+        { mimeType: "image/png", data: "aaaa" },
+        { mimeType: "image/jpeg", data: "bbbb" },
+      ],
+    });
+    expect(() => parseImageArgs({ prompt: "x", image_urls: ["/home/fxh/dog.jpg"] })).toThrow(
+      "cannot read local files",
+    );
   });
 
   test("sanitizeImageName and mime extension", () => {

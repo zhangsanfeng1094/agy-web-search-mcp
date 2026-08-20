@@ -30,10 +30,13 @@ describe("browser session storage", () => {
     expect(html).toContain("https://example.workers.dev/mcp");
     expect(html).toContain("search_web");
     expect(html).toContain("generate_image");
+    expect(html).toContain("网页搜索");
+    expect(html).toContain("生成图片");
     expect(html).toContain("<h2>工具</h2>");
     expect(html).toContain("query");
     expect(html).toContain("image_name");
     expect(html).toContain("aspect_ratio");
+    expect(html).toContain("images");
     expect(html).toContain("必填");
   });
 
@@ -45,6 +48,8 @@ describe("browser session storage", () => {
     });
     expect(text).toContain("Streamable HTTP");
     expect(text).toContain("https://example.workers.dev/mcp");
+    expect(text).toContain("名称：agy");
+    expect(text).toContain("[mcp_servers.agy]");
     expect(text).toContain("search_web");
     expect(text).toContain("curl -L --fail -o");
     expect(text).toContain("禁止只贴远程链接");

@@ -17,11 +17,11 @@ const server = Bun.serve({
 });
 
 const origin = `http://127.0.0.1:${server.port}`;
-console.log(`agy-web-search MCP  ${origin}/mcp`);
+console.log(`agy MCP  ${origin}/mcp`);
 console.log(`login               ${origin}/`);
 console.log(`session             ${fileSession?.refreshToken || env.AGY_REFRESH_TOKEN ? (env.AGY_REFRESH_TOKEN ? "env" : "agy token file") : "MISSING — open / to sign in"}`);
 if (env.MCP_AUTH_TOKEN) console.log("auth                Bearer MCP_AUTH_TOKEN");
-console.log(`\nGrok:\n[mcp_servers.agy-web-search]\nurl = "${origin}/mcp"${
+console.log(`\nGrok:\n[mcp_servers.agy]\nurl = "${origin}/mcp"${
   env.MCP_AUTH_TOKEN ? `\nheaders = { Authorization = "Bearer \${AGY_MCP_TOKEN}" }` : ""
 }\n`);
 

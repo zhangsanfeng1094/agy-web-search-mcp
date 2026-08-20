@@ -3,39 +3,789 @@ import type { MetricsSnapshot } from "./metrics.ts";
 import type { SessionSource } from "./types.ts";
 
 const CSS = `
-  :root { color-scheme: dark; }
-  body { font: 15px/1.5 ui-sans-serif, system-ui, sans-serif; max-width: 720px; margin: 48px auto; padding: 0 20px; color: #e8eaed; background: #111; }
-  h1 { font-size: 22px; font-weight: 620; margin: 0 0 8px; }
-  h2 { font-size: 16px; font-weight: 620; margin: 28px 0 8px; }
-  .muted { color: #9aa0a6; }
-  code, pre, textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
-  pre { background: #1c1c1c; border: 1px solid #2a2a2a; padding: 12px 14px; overflow: auto; border-radius: 8px; }
-  textarea { width: 100%; min-height: 88px; box-sizing: border-box; background: #1c1c1c; color: #e8eaed; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 12px; }
-  .ok { color: #81c995; }
-  .bad { color: #f28b82; }
-  a { color: #8ab4f8; }
-  .btn { display: inline-block; background: #8ab4f8; color: #111; text-decoration: none; font-weight: 620; padding: 8px 14px; border-radius: 8px; border: 0; cursor: pointer; font: inherit; }
-  .btn.ghost { background: transparent; color: #8ab4f8; border: 1px solid #3c4043; }
-  form { margin: 16px 0; }
-  ol { padding-left: 20px; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 14px 0 8px; }
-  .stat { background: #1c1c1c; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 12px; }
-  .stat .n { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; }
-  .stat .l { color: #9aa0a6; font-size: 12px; margin-top: 2px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #2a2a2a; vertical-align: top; }
-  th { color: #9aa0a6; font-weight: 550; }
-  td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
-  td.q { word-break: break-word; }
-  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 28px 0 8px; }
-  .row h2 { margin: 0; }
-  .tool { background: #1c1c1c; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px 16px; margin: 10px 0; }
-  .tool h3 { font: 620 14px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0 0 6px; }
-  .tool .summary { margin: 0 0 10px; }
-  .param { margin: 8px 0 0; }
-  .param .k { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .req { color: #f28b82; font-size: 12px; }
-  .opt { color: #9aa0a6; font-size: 12px; }
+  :root {
+    --bg-base: #090d16;
+    --bg-surface: rgba(17, 24, 39, 0.7);
+    --bg-surface-elevated: rgba(30, 41, 59, 0.6);
+    --bg-card: rgba(15, 23, 42, 0.75);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-highlight: rgba(255, 255, 255, 0.16);
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --primary-glow: rgba(99, 102, 241, 0.25);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --success: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --success-border: rgba(16, 185, 129, 0.25);
+    --danger: #f43f5e;
+    --danger-bg: rgba(244, 63, 94, 0.12);
+    --danger-border: rgba(244, 63, 94, 0.25);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --warning-border: rgba(245, 158, 11, 0.25);
+    --code-bg: #0d1117;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-main);
+    background-color: var(--bg-base);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent 100%),
+      radial-gradient(ellipse 60% 40% at 100% 20%, rgba(56, 189, 248, 0.08), transparent 100%),
+      radial-gradient(ellipse 50% 30% at 0% 80%, rgba(139, 92, 246, 0.05), transparent 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  /* Header & Hero */
+  header.hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px var(--primary-glow);
+    flex-shrink: 0;
+  }
+
+  .logo-icon svg {
+    width: 24px;
+    height: 24px;
+    color: #fff;
+  }
+
+  .brand-text h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-text .version-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  .brand-text p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .endpoint-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-main);
+  }
+
+  .endpoint-badge .method {
+    font-weight: 700;
+    color: #38bdf8;
+    font-size: 11px;
+  }
+
+  .copy-btn-mini {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s, background 0.15s;
+  }
+  .copy-btn-mini:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Section cards */
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    transition: border-color 0.2s;
+  }
+
+  .section-card:hover {
+    border-color: var(--border-highlight);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-icon {
+    color: #818cf8;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Status Badges */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .status-pill.ok {
+    background: var(--success-bg);
+    color: #34d399;
+    border: 1px solid var(--success-border);
+  }
+
+  .status-pill.bad {
+    background: var(--danger-bg);
+    color: #f87171;
+    border: 1px solid var(--danger-border);
+  }
+
+  .status-pill.warn {
+    background: var(--warning-bg);
+    color: #fbbf24;
+    border: 1px solid var(--warning-border);
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: currentColor;
+    box-shadow: 0 0 8px currentColor;
+    display: inline-block;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 2px 8px var(--primary-glow);
+    transition: all 0.15s ease;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+    color: #fff;
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn.ghost {
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+    border: 1px solid var(--border-subtle);
+    box-shadow: none;
+  }
+
+  .btn.ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: var(--border-highlight);
+  }
+
+  .btn.danger {
+    background: var(--danger-bg);
+    color: #f87171;
+    border: 1px solid var(--danger-border);
+    box-shadow: none;
+  }
+
+  .btn.danger:hover {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fff;
+  }
+
+  .btn-google {
+    background: #ffffff;
+    color: #1f2937;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-google:hover {
+    background: #f3f4f6;
+    color: #111827;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Session & Login Section */
+  .session-card-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+
+  .session-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .session-account-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-main);
+  }
+
+  .session-account-row .email {
+    font-family: var(--font-mono);
+    color: #34d399;
+    font-weight: 600;
+  }
+
+  .session-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hint-text {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Configuration / Tabs */
+  .tabs-nav {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 14px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 550;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .tab-btn.active {
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.12);
+    border-bottom: 2px solid #6366f1;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+  }
+
+  .code-container {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    background: var(--code-bg);
+  }
+
+  .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+
+  pre {
+    padding: 16px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e2e8f0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: rgba(255, 255, 255, 0.07);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e2e8f0;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin: 16px 0 18px;
+  }
+
+  .stat-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-highlight);
+  }
+
+  .stat-card .n {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+  }
+
+  .stat-card .n.ok { color: #34d399; }
+  .stat-card .n.bad { color: #f87171; }
+
+  .stat-card .l {
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Metrics Table */
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    margin-top: 14px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+    color: var(--text-main);
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  td.mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  td.q {
+    word-break: break-word;
+  }
+
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+
+  .status-tag.ok {
+    background: var(--success-bg);
+    color: #34d399;
+  }
+
+  .status-tag.bad {
+    background: var(--danger-bg);
+    color: #f87171;
+  }
+
+  /* Tools List */
+  .tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .tool-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: border-color 0.15s;
+  }
+
+  .tool-card:hover {
+    border-color: var(--border-highlight);
+  }
+
+  .tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .tool-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tool-name {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: #38bdf8;
+  }
+
+  .tool-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    font-weight: 500;
+  }
+
+  .tool-summary {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .params-box {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+
+  .params-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .param-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .param-item:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .param-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .req {
+    color: #f87171;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--danger-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .opt {
+    color: var(--text-dim);
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .param-desc {
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+
+  .returns-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    background: rgba(99, 102, 241, 0.05);
+    border-left: 3px solid #6366f1;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .returns-box .k {
+    color: #818cf8;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* Form & OAuth Views */
+  .auth-card {
+    max-width: 560px;
+    margin: 60px auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    padding: 36px 32px;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(16px);
+  }
+
+  .auth-card h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+
+  ol.step-list {
+    margin: 20px 0;
+    padding-left: 0;
+    list-style: none;
+    counter-reset: step-counter;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  ol.step-list li {
+    counter-increment: step-counter;
+    position: relative;
+    padding-left: 36px;
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+
+  ol.step-list li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    background: var(--code-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+    margin: 14px 0 18px;
+  }
+
+  textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .muted { color: var(--text-muted); }
+  .ok { color: #34d399; }
+  .bad { color: #f87171; }
+  a { color: #818cf8; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Utility / Transitions */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 20px 14px 60px; }
+    .section-card { padding: 18px 16px; }
+    .auth-card { padding: 24px 20px; }
+    .header-actions { width: 100%; justify-content: space-between; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 `;
 
 export const SESSION_STORAGE_KEY = "agy-web-search-session";
@@ -59,38 +809,151 @@ export function landingHtml(opts: {
     authRequired: opts.authRequired,
     refreshToken: undefined,
   });
+
   const hint = opts.oauthManual
     ? "agy 的 OAuth 客户端只能回调 localhost。授权后浏览器会打开一个打不开的页面，把地址栏完整 URL 贴回来即可。"
     : "本机回调会自动接住授权码，登录后 session 写进这个浏览器的 localStorage。";
 
   return `<!doctype html>
 <html lang="zh-CN">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${SERVER_NAME} MCP</title>
-<meta http-equiv="refresh" content="15">
-<style>${CSS}</style>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${SERVER_NAME} · Streamable HTTP MCP</title>
+  <meta http-equiv="refresh" content="15">
+  <style>${CSS}</style>
+</head>
 <body data-origin="${escapeHtml(opts.origin)}" data-auth="${opts.authRequired ? "1" : "0"}">
-<h1>${SERVER_NAME}</h1>
-<p class="muted">Streamable HTTP MCP · ${SERVER_VERSION}</p>
-<p>Session: <span id="session-status" data-source="${opts.session}" class="${opts.session === "missing" ? "bad" : "ok"}">${escapeHtml(sessionLabel)}</span></p>
-<p>MCP endpoint: <code>${escapeHtml(opts.origin)}/mcp</code>${opts.authRequired ? " · Bearer token required" : ""}</p>
-${toolsHtml()}
-${metricsHtml(opts.metrics)}
-<div id="login-section">
-<h2 id="login-title">用 Google 登录拿 session</h2>
-<p id="login-account" hidden>账号: <span id="login-email" class="ok"></span></p>
-<p><a class="btn" id="login-btn" href="/oauth/login">Sign in with Google</a>
-<button type="button" class="btn ghost" id="logout-btn" hidden>退出</button></p>
-<p class="muted" id="login-hint">${escapeHtml(hint)}</p>
+<div class="container fade-in">
+
+  <!-- Header -->
+  <header class="hero">
+    <div class="brand">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <path d="M11 8v6"></path>
+          <path d="M8 11h6"></path>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>${SERVER_NAME} <span class="version-tag">${SERVER_VERSION}</span></h1>
+        <p>Streamable HTTP MCP · 实时搜索与图像生成服务</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="endpoint-badge" title="MCP Endpoint">
+        <span class="method">POST</span>
+        <code>${escapeHtml(opts.origin)}/mcp</code>
+        <button type="button" class="copy-btn-mini" onclick="navigator.clipboard.writeText('${escapeHtml(opts.origin)}/mcp')" title="复制端点">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <span class="status-pill ${opts.authRequired ? "warn" : "ok"}">
+        <span class="pulse-dot"></span>
+        ${opts.authRequired ? "Bearer Auth 开启" : "公开端点"}
+      </span>
+    </div>
+  </header>
+
+  <!-- Session Section -->
+  <section class="section-card" id="login-section">
+    <div class="card-header">
+      <h2 id="login-title">
+        <span class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </span>
+        Google 授权状态
+      </h2>
+      <div>
+        Session: <span id="session-status" data-source="${opts.session}" class="status-pill ${opts.session === "missing" ? "bad" : "ok"}"><span class="pulse-dot"></span>${escapeHtml(sessionLabel)}</span>
+      </div>
+    </div>
+
+    <div class="session-card-inner">
+      <div class="session-info">
+        <div class="session-account-row" id="login-account" hidden>
+          <span>绑定账号:</span>
+          <span id="login-email" class="email ok"></span>
+        </div>
+        <p class="hint-text" id="login-hint">${escapeHtml(hint)}</p>
+      </div>
+      <div class="session-actions">
+        <a class="btn btn-google" id="login-btn" href="/oauth/login">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          Sign in with Google
+        </a>
+        <button type="button" class="btn danger" id="logout-btn" hidden>退出登录</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Agent Config Section -->
+  <section class="section-card">
+    <div class="card-header">
+      <h2>
+        <span class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        </span>
+        给 Agent 的配置 prompt
+      </h2>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span id="copy-agent-status" class="hint-text ok"></span>
+        <button type="button" class="btn" id="copy-agent-prompt">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          一键复制
+        </button>
+      </div>
+    </div>
+
+    <!-- Client selector tabs -->
+    <div class="tabs-nav">
+      <button type="button" class="tab-btn active" data-tab="prompt">Agent 全量 Prompt (推荐)</button>
+      <button type="button" class="tab-btn" data-tab="grok">Grok (TOML)</button>
+      <button type="button" class="tab-btn" data-tab="claude">Claude (JSON)</button>
+      <button type="button" class="tab-btn" data-tab="cursor">Cursor / VS Code (JSON)</button>
+      <button type="button" class="tab-btn" data-tab="curl">cURL 调试</button>
+    </div>
+
+    <div class="code-container">
+      <div class="code-header">
+        <span id="code-snippet-type">AGENT_PROMPT.md</span>
+        <span>UTF-8</span>
+      </div>
+      <pre id="agent-prompt">${escapeHtml(prompt)}</pre>
+    </div>
+
+    <p class="hint-text" style="margin-top: 12px;">
+      复制后直接发给 Grok / Claude / Cursor，让它自动写入 MCP 配置。登录成功后 prompt 会自动附加 <code>X-Agy-Refresh-Token</code>（保存在本地 localStorage）。也可以通过 <code>wrangler secret put AGY_REFRESH_TOKEN</code> 持久化到 Cloudflare 服务端。
+    </p>
+  </section>
+
+  <!-- Tools Section -->
+  <section class="section-card">
+    <div class="card-header">
+      <h2>工具</h2>
+      <span class="hint-text">连上 <code>/mcp</code> 后 Agent 可调用的 2 个工具</span>
+    </div>
+    ${toolsHtml()}
+  </section>
+
+  <!-- Metrics Section -->
+  <section class="section-card">
+    <div class="card-header">
+      <h2>
+        <span class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        </span>
+        监控
+      </h2>
+      <span class="hint-text">每 15 秒自动刷新</span>
+    </div>
+    ${metricsHtml(opts.metrics)}
+  </section>
+
 </div>
-<div class="row">
-<h2>给 Agent 的配置 prompt</h2>
-<button type="button" class="btn" id="copy-agent-prompt">一键复制</button>
-<span id="copy-agent-status" class="muted"></span>
-</div>
-<pre id="agent-prompt">${escapeHtml(prompt)}</pre>
-<p class="muted">复制后贴给 Grok / Claude / Cursor，让它写入 MCP 配置。登录成功后 prompt 会带上 <code>X-Agy-Refresh-Token</code>（存在这个浏览器的 localStorage）。也可以再 <code>wrangler secret put AGY_REFRESH_TOKEN</code> 存到服务端。</p>
+
 ${browserSessionScript()}
 </body>
 </html>`;
@@ -99,24 +962,41 @@ ${browserSessionScript()}
 export function oauthWaitHtml(opts: { authUrl: string; error?: string }): string {
   return `<!doctype html>
 <html lang="zh-CN">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Google 登录 · ${SERVER_NAME}</title>
-<style>${CSS}</style>
-<h1>完成 Google 授权</h1>
-<p class="muted">agy 桌面端 OAuth 只能回调 localhost，部署后需要手动贴回回调 URL。</p>
-<ol>
-  <li>打开 <a href="${escapeHtml(opts.authUrl)}" target="_blank" rel="noopener">Google 授权页</a></li>
-  <li>登录并同意权限</li>
-  <li>浏览器会跳到 <code>http://localhost:51121/oauth-callback?code=...</code>，页面打不开是正常的</li>
-  <li>复制地址栏完整 URL，粘贴到下面</li>
-</ol>
-${opts.error ? `<p class="bad">${escapeHtml(opts.error)}</p>` : ""}
-<form method="post" action="/oauth/complete">
-  <textarea name="callback" required placeholder="http://localhost:51121/oauth-callback?code=..."></textarea>
-  <p><button class="btn" type="submit">完成登录</button>
-  <a class="btn ghost" href="/">返回</a></p>
-</form>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>完成 Google 授权 · ${SERVER_NAME}</title>
+  <style>${CSS}</style>
+</head>
+<body>
+  <div class="auth-card fade-in">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <div class="logo-icon" style="width: 36px; height: 36px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      </div>
+      <h1>完成 Google 授权</h1>
+    </div>
+    <p class="muted" style="font-size: 13.5px; margin-bottom: 16px;">agy 桌面端 OAuth 默认回调 localhost。远程部署时需要完成授权后手动贴回回调 URL。</p>
+
+    <ol class="step-list">
+      <li>点击打开 <a class="btn btn-google" style="display: inline-flex; padding: 4px 12px; margin-left: 6px; font-size: 12px;" href="${escapeHtml(opts.authUrl)}" target="_blank" rel="noopener">Google 授权页 ↗</a></li>
+      <li>登录并确认授权相关权限</li>
+      <li>浏览器会重定向到 <code>http://localhost:51121/oauth-callback?code=...</code>（页面无法访问是完全正常的）</li>
+      <li>复制浏览器地址栏的完整 URL，粘贴到下方输入框中</li>
+    </ol>
+
+    ${opts.error ? `<div class="status-pill bad" style="width: 100%; margin-bottom: 14px; padding: 8px 12px; border-radius: 8px;">${escapeHtml(opts.error)}</div>` : ""}
+
+    <form method="post" action="/oauth/complete">
+      <label class="hint-text" style="font-weight: 600; display: block; margin-bottom: 4px;">回调 URL</label>
+      <textarea name="callback" required placeholder="http://localhost:51121/oauth-callback?code=4/0A..."></textarea>
+      <div class="form-actions">
+        <button class="btn" type="submit" style="flex: 1;">完成登录</button>
+        <a class="btn ghost" href="/">返回首页</a>
+      </div>
+    </form>
+  </div>
+</body>
 </html>`;
 }
 
@@ -129,20 +1009,42 @@ export function oauthSuccessHtml(opts: {
   const grok = grokSnippet(opts.origin, opts.authRequired, opts.refreshToken);
   return `<!doctype html>
 <html lang="zh-CN">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>已拿到 session · ${SERVER_NAME}</title>
-<style>${CSS}</style>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>授权成功 · ${SERVER_NAME}</title>
+  <style>${CSS}</style>
+</head>
 <body>
-<h1>已拿到 Google session</h1>
-<p>账号: <span class="ok">${escapeHtml(opts.email || "(unknown)")}</span></p>
-<p class="muted">已写入这个浏览器的 localStorage，正在返回首页…</p>
-<h2>refresh_token</h2>
-<pre>${escapeHtml(opts.refreshToken)}</pre>
-<h2>Grok</h2>
-<pre>${escapeHtml(grok)}</pre>
-<p><a class="btn ghost" href="/">如果没有自动跳转，点这里</a></p>
-${browserSessionScript({ refreshToken: opts.refreshToken, email: opts.email })}
+  <div class="auth-card fade-in" style="max-width: 680px;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--success-bg); border: 2px solid var(--success-border); color: #34d399; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <h1>已拿到 Google session</h1>
+      <p class="muted">登录账号: <span class="ok" style="font-weight: 600;">${escapeHtml(opts.email || "(unknown)")}</span></p>
+      <p class="hint-text" style="margin-top: 6px;">Token 已写入此浏览器的 localStorage，即将自动返回首页…</p>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <div class="hint-text" style="font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">refresh_token</div>
+      <div class="code-container">
+        <pre>${escapeHtml(opts.refreshToken)}</pre>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <div class="hint-text" style="font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Grok MCP 配置</div>
+      <div class="code-container">
+        <pre>${escapeHtml(grok)}</pre>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <a class="btn" href="/">返回首页</a>
+    </div>
+  </div>
+  ${browserSessionScript({ refreshToken: opts.refreshToken, email: opts.email })}
 </body>
 </html>`;
 }
@@ -150,18 +1052,31 @@ ${browserSessionScript({ refreshToken: opts.refreshToken, email: opts.email })}
 export function oauthErrorHtml(message: string): string {
   return `<!doctype html>
 <html lang="zh-CN">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>登录失败 · ${SERVER_NAME}</title>
-<style>${CSS}</style>
-<h1>登录失败</h1>
-<p class="bad">${escapeHtml(message)}</p>
-<p><a class="btn" href="/oauth/login">重试</a> <a class="btn ghost" href="/">返回</a></p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录失败 · ${SERVER_NAME}</title>
+  <style>${CSS}</style>
+</head>
+<body>
+  <div class="auth-card fade-in" style="text-align: center;">
+    <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--danger-bg); border: 2px solid var(--danger-border); color: #f87171; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+    </div>
+    <h1>登录失败</h1>
+    <p class="bad" style="margin: 12px 0 24px; font-size: 14px;">${escapeHtml(message)}</p>
+    <div class="form-actions" style="justify-content: center;">
+      <a class="btn" href="/oauth/login">重试登录</a>
+      <a class="btn ghost" href="/">返回首页</a>
+    </div>
+  </div>
+</body>
 </html>`;
 }
 
-const TOOL_COPY: Record<string, { summary: string; params: Record<string, string>; returns: string }> = {
+const TOOL_COPY: Record<string, { title: string; summary: string; params: Record<string, string>; returns: string }> = {
   search_web: {
+    title: "网页搜索",
     summary: "用 agy 的 Google session 做实时网页搜索。适合新闻、近况、需要出处的事实。",
     params: {
       query: "搜索词。需要时带上日期或地区。",
@@ -169,12 +1084,14 @@ const TOOL_COPY: Record<string, { summary: string; params: Record<string, string
     returns: "一段带引用的文本：摘要、实际搜索词、来源链接。",
   },
   generate_image: {
+    title: "生成图片",
     summary: "用 agy 的生图模型画图或改图。适合 UI 稿、图标、素材。画界面时不要加手机/电脑外框，除非用户明确要。",
     params: {
       prompt: "要画什么，或怎么改参考图。",
       image_name: "保存用的短文件名，小写加下划线，最多约 3 个词，例如 login_page_mockup。",
       aspect_ratio: "画幅。默认 1:1。",
-      image_urls: "最多 3 张 http(s) 参考图，用来编辑、拼接或当参考。",
+      image_urls: "http(s) 参考图，包括本服务之前的 /files/... 链接。不能传本地路径。",
+      images: "本地参考图。本服务读不到用户磁盘，请把文件读成 base64 放进 data（可带 mimeType）。和 image_urls 合计最多 3 张。",
     },
     returns: "图片文件 + 短时下载地址。Agent 必须立刻 curl/下载到用户本地工作目录，禁止只贴 URL。",
   },
@@ -182,29 +1099,46 @@ const TOOL_COPY: Record<string, { summary: string; params: Record<string, string
 
 function toolsHtml(): string {
   const cards = [searchToolDef(), generateImageToolDef()].map(toolCard).join("");
-  return `<h2>工具</h2>
-<p class="muted">连上 <code>/mcp</code> 后 Agent 可以调用这两个工具，都走同一套 Google session。</p>
-${cards}`;
+  return `<div class="tools-list">${cards}</div>`;
 }
 
 function toolCard(def: ReturnType<typeof searchToolDef>): string {
   const copy = TOOL_COPY[def.name];
   const required = new Set(def.inputSchema.required ?? []);
-  const props = def.inputSchema.properties as Record<string, { description?: string; enum?: string[] }>;
+  const props = def.inputSchema.properties as Record<string, { description?: string; enum?: string[]; type?: string }>;
   const params = Object.entries(props)
     .map(([name, prop]) => {
       const desc = copy?.params[name] || prop.description || "";
       const enumHint = prop.enum?.length ? `可选值：${prop.enum.join(" / ")}。` : "";
       const badge = required.has(name) ? `<span class="req">必填</span>` : `<span class="opt">可选</span>`;
-      return `<div class="param"><div class="k"><code>${escapeHtml(name)}</code>${badge}</div><div class="muted">${escapeHtml(desc)} ${escapeHtml(enumHint)}</div></div>`;
+      return `<div class="param-item">
+        <div class="param-top">
+          <code>${escapeHtml(name)}</code>
+          ${badge}
+          <span style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">${escapeHtml(prop.type || "string")}</span>
+        </div>
+        <div class="param-desc">${escapeHtml(desc)} ${escapeHtml(enumHint)}</div>
+      </div>`;
     })
     .join("");
-  return `<div class="tool">
-<h3>${escapeHtml(def.name)}</h3>
-<p class="summary">${escapeHtml(copy?.summary || def.description)}</p>
-${params}
-<p class="muted">返回：${escapeHtml(copy?.returns || "")}</p>
-</div>`;
+
+  return `<div class="tool-card">
+    <div class="tool-header">
+      <div class="tool-name-wrap">
+        <span class="tool-name">${escapeHtml(copy?.title || def.name)}</span>
+        <span class="tool-badge"><code>${escapeHtml(def.name)}</code></span>
+      </div>
+    </div>
+    <p class="tool-summary">${escapeHtml(copy?.summary || def.description)}</p>
+    <div class="params-box">
+      <div class="params-title">参数 (Parameters)</div>
+      ${params}
+    </div>
+    <div class="returns-box">
+      <span class="k">返回：</span>
+      <span>${escapeHtml(copy?.returns || "")}</span>
+    </div>
+  </div>`;
 }
 
 function metricsHtml(m: MetricsSnapshot): string {
@@ -212,18 +1146,23 @@ function metricsHtml(m: MetricsSnapshot): string {
   const rows = m.recent.length
     ? m.recent
         .map((e) => {
-          const err = e.error ? `<div class="muted">${escapeHtml(e.error)}</div>` : "";
+          const err = e.error ? `<div class="bad" style="font-size: 12px; margin-top: 3px;">${escapeHtml(e.error)}</div>` : "";
           return `<tr>
             <td class="mono">${escapeHtml(fmtTime(e.at))}</td>
-            <td class="${e.ok ? "ok" : "bad"}">${e.ok ? "ok" : "fail"}</td>
+            <td><span class="status-tag ${e.ok ? "ok" : "bad"}">${e.ok ? "200 OK" : "ERR"}</span></td>
             <td class="mono">${escapeHtml(fmtMs(e.ms))}</td>
-            <td class="q">${escapeHtml(e.query || e.tool)}${err}</td>
+            <td class="q">
+              <span style="font-weight: 550; color: #38bdf8; font-family: var(--font-mono); font-size: 12px; margin-right: 6px;">[${escapeHtml(e.tool || "search_web")}]</span>
+              <span>${escapeHtml(e.query || "—")}</span>
+              ${err}
+            </td>
           </tr>`;
         })
         .join("")
-    : `<tr><td colspan="4" class="muted">还没有 search_web 调用</td></tr>`;
-  return `<h2>监控</h2>
-<div class="stats">
+    : `<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 24px 14px;">还没有工具调用</td></tr>`;
+
+  return `
+<div class="stats-grid">
   ${statBox(String(m.total), "总调用")}
   ${statBox(String(m.ok), "成功", "ok")}
   ${statBox(String(m.fail), "失败", m.fail ? "bad" : undefined)}
@@ -233,19 +1172,31 @@ function metricsHtml(m: MetricsSnapshot): string {
   ${statBox(m.p95Ms != null ? fmtMs(m.p95Ms) : "—", "P95")}
   ${statBox(String(m.authFail), "未授权", m.authFail ? "bad" : undefined)}
 </div>
-<p class="muted">${m.total ? `自 ${escapeHtml(fmtTime(m.startedAt))} 起。` : ""}${
-    m.persistent
-      ? "跨请求保存在 Cloudflare Durable Object。"
-      : "记在当前进程内存里，重启或 Worker 冷启动会清零。"
-  }每 15 秒刷新。</p>
-<table>
-  <thead><tr><th>时间</th><th>结果</th><th>耗时</th><th>查询</th></tr></thead>
-  <tbody>${rows}</tbody>
-</table>`;
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 6px; flex-wrap: wrap; gap: 8px;">
+  <span class="hint-text">
+    ${m.total ? `自 ${escapeHtml(fmtTime(m.startedAt))} 起。` : ""}${
+      m.persistent
+        ? "跨请求保存在 Cloudflare Durable Object。"
+        : "记在当前进程内存里，重启或 Worker 冷启动会清零。"
+    }
+  </span>
+  <span class="hint-text">显示最近 20 条调用记录</span>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>时间</th><th>状态</th><th>耗时</th><th>查询与工具</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>`;
 }
 
 function statBox(n: string, label: string, tone?: "ok" | "bad"): string {
-  return `<div class="stat"><div class="n${tone ? ` ${tone}` : ""}">${escapeHtml(n)}</div><div class="l">${escapeHtml(label)}</div></div>`;
+  return `<div class="stat-card">
+    <div class="l">${escapeHtml(label)}</div>
+    <div class="n${tone ? ` ${tone}` : ""}">${escapeHtml(n)}</div>
+  </div>`;
 }
 
 function fmtMs(ms: number): string {
@@ -282,13 +1233,14 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
   } catch (e) {
     s = null;
   }
+
+  var currentRefreshToken = s && typeof s.refreshToken === "string" ? s.refreshToken : undefined;
+
   if (s && typeof s.refreshToken === "string" && s.refreshToken) {
     var status = document.getElementById("session-status");
     if (status && status.getAttribute("data-source") === "missing") {
-      status.className = "ok";
-      status.textContent = s.email ? ("browser (" + s.email + ")") : "browser (localStorage)";
-      var promptEl = document.getElementById("agent-prompt");
-      if (promptEl) promptEl.textContent = agentClientPrompt(origin, auth, s.refreshToken);
+      status.className = "status-pill ok";
+      status.innerHTML = '<span class="pulse-dot"></span>' + (s.email ? ("browser (" + escapeHtmlJs(s.email) + ")") : "browser (localStorage)");
     }
     var title = document.getElementById("login-title");
     var account = document.getElementById("login-account");
@@ -296,7 +1248,7 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     var loginBtn = document.getElementById("login-btn");
     var logout = document.getElementById("logout-btn");
     var hint = document.getElementById("login-hint");
-    if (title) title.textContent = "浏览器里已有 session";
+    if (title) title.innerHTML = '<span class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span> 浏览器里已有 session';
     if (account) account.hidden = false;
     if (emailEl) emailEl.textContent = s.email || "(unknown)";
     if (loginBtn) loginBtn.textContent = "重新登录";
@@ -311,6 +1263,71 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       hint.textContent = "session 存在这个浏览器的 localStorage。点一键复制，把 prompt 贴给 Agent 写入 MCP 配置。";
     }
   }
+
+  var currentTab = "prompt";
+  function updateCodeSnippet() {
+    var promptEl = document.getElementById("agent-prompt");
+    var typeEl = document.getElementById("code-snippet-type");
+    if (!promptEl) return;
+    var content = "";
+    if (currentTab === "prompt") {
+      content = agentClientPrompt(origin, auth, currentRefreshToken);
+      if (typeEl) typeEl.textContent = "AGENT_PROMPT.md";
+    } else if (currentTab === "grok") {
+      content = grokClientSnippet(origin, auth, currentRefreshToken);
+      if (typeEl) typeEl.textContent = "config.toml (Grok)";
+    } else if (currentTab === "claude") {
+      var headersObj = {};
+      if (auth) headersObj["Authorization"] = "Bearer \${AGY_MCP_TOKEN}";
+      if (currentRefreshToken) headersObj["X-Agy-Refresh-Token"] = currentRefreshToken;
+      var claudeConfig = {
+        mcpServers: {
+          "agy": {
+            url: origin + "/mcp",
+            headers: Object.keys(headersObj).length ? headersObj : undefined
+          }
+        }
+      };
+      content = JSON.stringify(claudeConfig, null, 2);
+      if (typeEl) typeEl.textContent = ".claude.json / claude_desktop_config.json";
+    } else if (currentTab === "cursor") {
+      var headersObj = {};
+      if (auth) headersObj["Authorization"] = "Bearer \${AGY_MCP_TOKEN}";
+      if (currentRefreshToken) headersObj["X-Agy-Refresh-Token"] = currentRefreshToken;
+      var cursorConfig = {
+        mcpServers: {
+          "agy": {
+            url: origin + "/mcp",
+            headers: Object.keys(headersObj).length ? headersObj : undefined
+          }
+        }
+      };
+      content = JSON.stringify(cursorConfig, null, 2);
+      if (typeEl) typeEl.textContent = ".cursor/mcp.json";
+    } else if (currentTab === "curl") {
+      var hAuth = auth ? "  -H \\"Authorization: Bearer \${AGY_MCP_TOKEN}\\" \\\\\\n" : "";
+      var hTok = currentRefreshToken ? ("  -H \\"X-Agy-Refresh-Token: " + currentRefreshToken + "\\" \\\\\\n") : "";
+      content = "curl -X POST " + origin + "/mcp \\\\\\n" +
+        "  -H \\"Content-Type: application/json\\" \\\\\\n" +
+        hAuth + hTok +
+        "  -d '{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"method\\":\\"tools/call\\",\\"params\\":{\\"name\\":\\"search_web\\",\\"arguments\\":{\\"query\\":\\"最新 AI 动态\\"} }}'";
+      if (typeEl) typeEl.textContent = "curl_test.sh";
+    }
+    promptEl.textContent = content;
+  }
+
+  updateCodeSnippet();
+
+  var tabBtns = document.querySelectorAll(".tab-btn");
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tabBtns.forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      currentTab = btn.getAttribute("data-tab") || "prompt";
+      updateCodeSnippet();
+    });
+  });
+
   var copyBtn = document.getElementById("copy-agent-prompt");
   if (copyBtn) {
     copyBtn.addEventListener("click", function () {
@@ -318,11 +1335,12 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       var text = el ? el.textContent || "" : "";
       copyText(text).then(function (ok) {
         var st = document.getElementById("copy-agent-status");
-        if (st) st.textContent = ok ? "已复制，去贴给 Agent" : "复制失败，请手动选中";
+        if (st) st.textContent = ok ? "✓ 已复制到剪贴板" : "复制失败，请手动选中";
         if (ok) setTimeout(function () { if (st) st.textContent = ""; }, 2500);
       });
     });
   }
+
   function copyText(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () {
@@ -344,22 +1362,27 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
     document.body.removeChild(ta);
     return ok;
   }
+  function escapeHtmlJs(s) {
+    return s.replace(/[&<>"']/g, function(c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] || c;
+    });
+  }
   function grokClientSnippet(origin, authRequired, refreshToken) {
     var headers = [];
     if (authRequired) headers.push('Authorization = "Bearer \${AGY_MCP_TOKEN}"');
     if (refreshToken) headers.push('"X-Agy-Refresh-Token" = "' + refreshToken + '"');
     var headerLine = headers.length ? "\\nheaders = { " + headers.join(", ") + " }" : "";
-    return "[mcp_servers.agy-web-search]\\nurl = \\"" + origin + "/mcp\\"" + headerLine;
+    return "[mcp_servers.agy]\\nurl = \\"" + origin + "/mcp\\"" + headerLine;
   }
   function agentClientPrompt(origin, authRequired, refreshToken) {
     var lines = [
       "请把下面这个 Streamable HTTP MCP 加到你的 MCP 配置里。",
       "Grok 直接用这段 TOML；其他客户端按同样的 url 和 headers 写成自己的格式。不要改 URL 和 header 的值。",
       "",
-      "名称：agy-web-search",
+      "名称：agy",
       "传输：Streamable HTTP",
       "端点：" + origin + "/mcp",
-      "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片。返回后必须立刻把图片下载到用户当前工作目录（curl -L --fail -o <文件名> <Download URL>），禁止只贴远程链接。",
+      "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?, image_urls?, images?) — 生成或改图。本地参考图请读取文件后放入 images[{mimeType,data}]，不要传本地路径。返回后必须立刻把图片下载到用户当前工作目录（curl -L --fail -o <文件名> <Download URL>），禁止只贴远程链接。",
       "",
       grokClientSnippet(origin, authRequired, refreshToken)
     ];
@@ -384,10 +1407,10 @@ export function agentConfigPrompt(opts: {
     "请把下面这个 Streamable HTTP MCP 加到你的 MCP 配置里。",
     "Grok 直接用这段 TOML；其他客户端按同样的 url 和 headers 写成自己的格式。不要改 URL 和 header 的值。",
     "",
-    "名称：agy-web-search",
+    "名称：agy",
     "传输：Streamable HTTP",
     `端点：${opts.origin}/mcp`,
-    "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片。返回后必须立刻把图片下载到用户当前工作目录（curl -L --fail -o <文件名> <Download URL>），禁止只贴远程链接。",
+    "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?, image_urls?, images?) — 生成或改图。本地参考图请读取文件后放入 images[{mimeType,data}]，不要传本地路径。返回后必须立刻把图片下载到用户当前工作目录（curl -L --fail -o <文件名> <Download URL>），禁止只贴远程链接。",
     "",
     grokSnippet(opts.origin, opts.authRequired, opts.refreshToken),
   ];
@@ -405,7 +1428,7 @@ function grokSnippet(origin: string, authRequired: boolean, refreshToken?: strin
   if (authRequired) headers.push('Authorization = "Bearer ${AGY_MCP_TOKEN}"');
   if (refreshToken) headers.push(`"X-Agy-Refresh-Token" = "${refreshToken}"`);
   const headerLine = headers.length ? `\nheaders = { ${headers.join(", ")} }` : "";
-  return `[mcp_servers.agy-web-search]\nurl = "${origin}/mcp"${headerLine}`;
+  return `[mcp_servers.agy]\nurl = "${origin}/mcp"${headerLine}`;
 }
 
 function escapeHtml(s: string): string {

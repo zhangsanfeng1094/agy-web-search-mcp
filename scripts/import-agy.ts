@@ -69,7 +69,7 @@ Vercel:
   npx vercel --prod
 
 Grok (after deploy, replace URL):
-[mcp_servers.agy-web-search]
+[mcp_servers.agy]
 url = "https://agy-web-search-mcp.<subdomain>.workers.dev/mcp"
 headers = { Authorization = "Bearer ${mcpToken}", "X-Agy-Refresh-Token" = "\${AGY_REFRESH_TOKEN}" }
 `);

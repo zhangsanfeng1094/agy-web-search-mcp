@@ -5,11 +5,13 @@ import { handleRequest } from "./handler.ts";
 describe("mcp protocol", () => {
   test("initialize and tools/list", async () => {
     const init = await handleRpc({ jsonrpc: "2.0", id: 1, method: "initialize" }, {}, { source: "missing" });
-    expect(JSON.stringify(init.result)).toContain("agy-web-search");
+    expect(JSON.stringify(init.result)).toContain('"name":"agy"');
     const list = await handleRpc({ jsonrpc: "2.0", id: 2, method: "tools/list" }, {}, { source: "missing" });
     expect(JSON.stringify(list.result)).toContain("search_web");
     expect(JSON.stringify(list.result)).toContain("generate_image");
     expect(generateImageToolDef().description).toContain("MUST download");
+    expect(generateImageToolDef().description).toContain("cannot read the user's disk");
+    expect(JSON.stringify(generateImageToolDef().inputSchema)).toContain("images");
     expect(searchToolDef().inputSchema.required).toContain("query");
   });
 
@@ -58,7 +60,7 @@ describe("mcp protocol", () => {
     );
     expect(init.status).toBe(200);
     const body = await init.json();
-    expect(body.result.serverInfo.name).toBe("agy-web-search");
+    expect(body.result.serverInfo.name).toBe("agy");
 
     const note = await handleRequest(
       new Request("http://127.0.0.1/mcp", {

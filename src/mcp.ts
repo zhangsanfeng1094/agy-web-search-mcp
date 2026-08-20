@@ -3,8 +3,8 @@ import { searchWeb } from "./search.ts";
 import { generateImage, parseImageArgs } from "./image.ts";
 import { filesClient } from "./files.ts";
 
-export const SERVER_NAME = "agy-web-search";
-export const SERVER_VERSION = "0.4.0";
+export const SERVER_NAME = "agy";
+export const SERVER_VERSION = "0.5.0";
 const SUPPORTED = new Set(["2024-11-05", "2025-03-26", "2025-06-18", "2026-07-28"]);
 
 export type RpcRequest = {
@@ -57,7 +57,7 @@ export function generateImageToolDef() {
   return {
     name: "generate_image",
     description:
-      "Generate or edit an image with the Antigravity/agy Google session (Cloud Code image model). Returns image bytes plus a short-lived Download URL. Use for UI mockups, icons, and assets. When drawing UI, omit device frames unless asked. REQUIRED follow-up: you MUST download the file into the user's current workspace (curl -L --fail -o <filename> <Download URL>, or write the returned image bytes). Never finish with only a remote link.",
+      "Generate or edit an image with the Antigravity/agy Google session (Cloud Code image model). Returns image bytes plus a short-lived Download URL. Use for UI mockups, icons, and assets. When drawing UI, omit device frames unless asked. This server cannot read the user's disk: for a local reference, read the file and pass it in images[{mimeType,data}] as base64 (or a data URL). Do not pass local filesystem paths. REQUIRED follow-up: you MUST download the result into the user's current workspace (curl -L --fail -o <filename> <Download URL>, or write the returned image bytes). Never finish with only a remote link.",
     inputSchema: {
       type: "object",
       properties: {
@@ -78,7 +78,23 @@ export function generateImageToolDef() {
         image_urls: {
           type: "array",
           items: { type: "string" },
-          description: "Optional http(s) images to edit, combine, or use as references. Max 3.",
+          description: "Optional http(s) reference images, including previous /files/... downloads. Not local paths. Max 3 combined with images.",
+        },
+        images: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              mimeType: { type: "string", description: "image/jpeg, image/png, image/webp, ..." },
+              data: {
+                type: "string",
+                description: "Raw base64 without a data: prefix, or a full data URL.",
+              },
+            },
+            required: ["data"],
+          },
+          description:
+            "Local reference images. Read the file from disk and put the bytes here. Combined with image_urls, max 3.",
         },
       },
       required: ["prompt"],

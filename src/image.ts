@@ -13,11 +13,17 @@ const MAX_REF_IMAGES = 3;
 const MAX_REF_BYTES = 5_000_000;
 let cachedModel: { id: string; exp: number } | undefined;
 
+export type InlineImage = {
+  mimeType: string;
+  data: string;
+};
+
 export type GenerateImageInput = {
   prompt: string;
   imageName?: string;
   aspectRatio: ImageAspectRatio;
   imageUrls?: string[];
+  images?: InlineImage[];
 };
 
 export type GeneratedImage = {
@@ -57,9 +63,27 @@ export function parseImageArgs(raw: unknown): GenerateImageInput {
   if (!IMAGE_ASPECT_RATIOS.includes(ratioRaw as ImageAspectRatio)) {
     throw new Error(`aspect_ratio must be one of ${IMAGE_ASPECT_RATIOS.join(", ")}`);
   }
-  const urls = asStringList(obj.image_urls ?? obj.imageUrls ?? obj.image_paths ?? obj.imagePaths);
-  if (urls.length > MAX_REF_IMAGES) throw new Error(`at most ${MAX_REF_IMAGES} reference images`);
-  return { prompt, imageName, aspectRatio: ratioRaw as ImageAspectRatio, imageUrls: urls };
+  const images: InlineImage[] = [];
+  for (const item of asList(obj.images ?? obj.image)) {
+    images.push(parseInlineImage(item));
+  }
+  const urls: string[] = [];
+  for (const u of asStringList(obj.image_urls ?? obj.imageUrls ?? obj.image_paths ?? obj.imagePaths)) {
+    if (u.startsWith("data:")) {
+      images.push(parseDataUrl(u));
+      continue;
+    }
+    if (isLocalPath(u)) {
+      throw new Error(
+        "this MCP cannot read local files; read the image and pass images=[{mimeType, data}] as base64 (or a data URL)",
+      );
+    }
+    urls.push(u);
+  }
+  if (images.length + urls.length > MAX_REF_IMAGES) {
+    throw new Error(`at most ${MAX_REF_IMAGES} reference images`);
+  }
+  return { prompt, imageName, aspectRatio: ratioRaw as ImageAspectRatio, imageUrls: urls, images };
 }
 
 export function sanitizeImageName(name?: string): string {
@@ -100,6 +124,9 @@ export async function generateImage(
 ): Promise<GeneratedImage> {
   const model = env.AGY_IMAGE_MODEL?.trim() || (await resolveImageModel(env, session));
   const parts: Array<Record<string, unknown>> = [{ text: input.prompt }];
+  for (const img of input.images ?? []) {
+    parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+  }
   for (const url of input.imageUrls ?? []) {
     parts.push({ inlineData: await fetchReference(url, env) });
   }
@@ -187,6 +214,50 @@ export async function fetchReference(
   const buf = new Uint8Array(await resp.arrayBuffer());
   if (buf.byteLength > MAX_REF_BYTES) throw new Error(`reference image too large: ${url}`);
   return { mimeType: mime, data: toBase64(buf) };
+}
+
+export function parseInlineImage(raw: unknown): InlineImage {
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (t.startsWith("data:")) return parseDataUrl(t);
+    if (t.length < 32) throw new Error("inline image data is too short");
+    return { mimeType: "image/jpeg", data: t.replace(/\s+/g, "") };
+  }
+  if (!raw || typeof raw !== "object") throw new Error("invalid inline image");
+  const o = raw as Record<string, unknown>;
+  const data = str(o.data) || str(o.base64);
+  if (!data) throw new Error("images[].data is required");
+  if (data.startsWith("data:")) return parseDataUrl(data);
+  const mime = str(o.mimeType) || str(o.mime_type) || str(o.type) || "image/jpeg";
+  return { mimeType: mime, data: data.replace(/\s+/g, "") };
+}
+
+export function parseDataUrl(raw: string): InlineImage {
+  const m = raw.trim().match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
+  if (!m) throw new Error("invalid data URL");
+  const mime = (m[1] || "image/jpeg").trim() || "image/jpeg";
+  const data = (m[3] || "").replace(/\s+/g, "");
+  if (!data) throw new Error("empty data URL");
+  return { mimeType: mime, data };
+}
+
+function isLocalPath(s: string): boolean {
+  const t = s.trim();
+  if (t.startsWith("file:")) return true;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(t)) return false;
+  return (
+    t.startsWith("/") ||
+    t.startsWith("./") ||
+    t.startsWith("../") ||
+    t.startsWith("~") ||
+    /^[A-Za-z]:[\\/]/.test(t) ||
+    t.includes("\\")
+  );
+}
+
+function asList(v: unknown): unknown[] {
+  if (v == null || v === "") return [];
+  return Array.isArray(v) ? v : [v];
 }
 
 function asObject(raw: unknown): Record<string, unknown> {

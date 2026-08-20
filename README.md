@@ -1,6 +1,6 @@
 # agy-web-search MCP
 
-独立的 Streamable HTTP MCP：把 agy 的 Google 登录做成可部署的 `/mcp` 端点，提供 `search_web` 和 `generate_image`。本地、Cloudflare Workers、Vercel Edge 共用同一套 handler。
+独立的 Streamable HTTP MCP：把 agy 的 Google 登录做成可部署的 `/mcp` 端点。Agent 里的名称是 `agy`，工具是 `search_web`（网页搜索）和 `generate_image`（生成图片）。本地、Cloudflare Workers、Vercel Edge 共用同一套 handler。
 
 先部署，再打开网站用 Google 登录拿 session。服务端不必事先写入 `AGY_REFRESH_TOKEN`。
 
@@ -51,7 +51,7 @@ bun run dev
 登录成功后首页点 **一键复制**，把 prompt 贴给 Agent，让它写入 MCP 配置。token 来自这个浏览器的 `localStorage`。远程一般是：
 
 ```toml
-[mcp_servers.agy-web-search]
+[mcp_servers.agy]
 url = "https://agy-web-search-mcp.<subdomain>.workers.dev/mcp"
 headers = { Authorization = "Bearer ${AGY_MCP_TOKEN}", "X-Agy-Refresh-Token" = "${AGY_REFRESH_TOKEN}" }
 ```
@@ -61,7 +61,7 @@ headers = { Authorization = "Bearer ${AGY_MCP_TOKEN}", "X-Agy-Refresh-Token" = "
 本地：
 
 ```toml
-[mcp_servers.agy-web-search]
+[mcp_servers.agy]
 url = "http://127.0.0.1:8787/mcp"
 ```
 
