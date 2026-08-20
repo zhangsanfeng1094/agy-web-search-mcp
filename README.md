@@ -1,6 +1,6 @@
 # agy-web-search MCP
 
-独立的 Streamable HTTP MCP：把 agy 的 Google 登录做成可部署的 `/mcp` 端点。本地、Cloudflare Workers、Vercel Edge 共用同一套 handler。
+独立的 Streamable HTTP MCP：把 agy 的 Google 登录做成可部署的 `/mcp` 端点，提供 `search_web` 和 `generate_image`。本地、Cloudflare Workers、Vercel Edge 共用同一套 handler。
 
 先部署，再打开网站用 Google 登录拿 session。服务端不必事先写入 `AGY_REFRESH_TOKEN`。
 
@@ -84,4 +84,5 @@ bun run import-agy
 | `MCP_AUTH_TOKEN` | 保护 `/mcp` 的 Bearer |
 | `AGY_SEARCH_PROJECT` | 默认 `default-cli-project` |
 | `AGY_SEARCH_MODEL` | 默认 `gemini-3.6-flash-high` |
+| `AGY_IMAGE_MODEL` | 可选。覆盖 `fetchAvailableModels` 里的生图模型，默认 `gemini-3.1-flash-image` |
 | `AGY_OAUTH_TOKEN_PATH` | 本地 token 文件覆盖路径 |

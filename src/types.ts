@@ -13,7 +13,9 @@ export type AppEnv = {
   AGY_SEARCH_MODEL?: string;
   AGY_SEARCH_ENDPOINT?: string;
   MCP_AUTH_TOKEN?: string;
+  AGY_IMAGE_MODEL?: string;
   METRICS?: MetricsNamespace;
+  FILES?: MetricsNamespace;
 };
 
 export type SessionSource = "env" | "header" | "file" | "missing";

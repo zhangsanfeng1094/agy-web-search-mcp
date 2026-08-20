@@ -1,7 +1,7 @@
 import type { AppEnv, RequestSession } from "./types.ts";
 import { sessionFromRequest } from "./session.ts";
 import {
-  extractQuery,
+  extractToolQuery,
   handleRpc,
   isNotification,
   SERVER_NAME,
@@ -9,6 +9,7 @@ import {
   type RpcRequest,
   type RpcResponse,
 } from "./mcp.ts";
+import { filesClient } from "./files.ts";
 import { landingHtml, oauthErrorHtml, oauthSuccessHtml, oauthWaitHtml } from "./page.ts";
 import { metricsClient, type MetricsClient } from "./metrics.ts";
 import {
@@ -82,6 +83,10 @@ export async function handleRequest(
     return finishOauthPosted(req, url, env);
   }
 
+  if (req.method === "GET" && path.startsWith("/files/")) {
+    return serveFile(path, env);
+  }
+
   if (req.method === "GET" && path === "/mcp") {
     return json({ error: "method not allowed; POST JSON-RPC to /mcp" }, 405);
   }
@@ -109,7 +114,7 @@ export async function handleRequest(
       const out = [];
       for (const item of requests) {
         if (isNotificationOrResponse(item)) continue;
-        out.push(await invokeRpc(item, env, session, metrics));
+        out.push(await invokeRpc(item, env, session, metrics, url.origin));
       }
       return json(out, 200);
     }
@@ -118,7 +123,7 @@ export async function handleRequest(
     if (isNotificationOrResponse(msg)) {
       return new Response(null, { status: 202, headers: CORS });
     }
-    const result = await invokeRpc(msg, env, session, metrics);
+    const result = await invokeRpc(msg, env, session, metrics, url.origin);
     return json(result, 200);
   }
 
@@ -147,9 +152,10 @@ async function invokeRpc(
   env: AppEnv,
   session: RequestSession,
   metrics: MetricsClient,
+  origin: string,
 ): Promise<RpcResponse> {
   const t0 = Date.now();
-  const result = await handleRpc(req, env, session);
+  const result = await handleRpc(req, env, session, { origin });
   if (req.method === "tools/call") await recordToolCall(req, result, Date.now() - t0, metrics);
   return result;
 }
@@ -161,12 +167,7 @@ async function recordToolCall(
   metrics: MetricsClient,
 ): Promise<void> {
   const params = (req.params ?? {}) as { name?: string; arguments?: unknown };
-  let query: string | undefined;
-  try {
-    query = extractQuery(params.arguments);
-  } catch {
-    query = undefined;
-  }
+  const query = extractToolQuery(params.name, params.arguments);
   const toolError = result.result as { isError?: boolean; content?: Array<{ text?: string }> } | undefined;
   const failed = Boolean(result.error) || Boolean(toolError?.isError);
   await metrics.record({
@@ -187,6 +188,32 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 function wantsJson(req: Request): boolean {
   return (req.headers.get("accept") ?? "").includes("application/json");
+}
+
+async function serveFile(path: string, env: AppEnv): Promise<Response> {
+  const parts = path.split("/").filter(Boolean);
+  const id = parts[1];
+  if (!id) return json({ error: "not found" }, 404);
+  const file = await filesClient(env).get(id);
+  if (!file) return json({ error: "not found" }, 404);
+  const bytes = fromBase64(file.data);
+  const filename = parts[2] || file.name;
+  return new Response(bytes, {
+    status: 200,
+    headers: {
+      ...CORS,
+      "Content-Type": file.mimeType,
+      "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
+      "Cache-Control": "private, max-age=3600",
+    },
+  });
+}
+
+function fromBase64(s: string): Uint8Array {
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 function json(data: unknown, status: number): Response {

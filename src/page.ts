@@ -304,7 +304,7 @@ function browserSessionScript(justLoggedIn?: { refreshToken: string; email?: str
       "名称：agy-web-search",
       "传输：Streamable HTTP",
       "端点：" + origin + "/mcp",
-      "工具：search_web(query) — 查新闻、近况和需要引用的事实",
+      "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片文件",
       "",
       grokClientSnippet(origin, authRequired, refreshToken)
     ];
@@ -332,7 +332,7 @@ export function agentConfigPrompt(opts: {
     "名称：agy-web-search",
     "传输：Streamable HTTP",
     `端点：${opts.origin}/mcp`,
-    "工具：search_web(query) — 查新闻、近况和需要引用的事实",
+    "工具：search_web(query) — 查新闻、近况和需要引用的事实；generate_image(prompt, image_name?, aspect_ratio?) — 生成图片文件",
     "",
     grokSnippet(opts.origin, opts.authRequired, opts.refreshToken),
   ];

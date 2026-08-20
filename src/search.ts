@@ -1,9 +1,5 @@
 import type { AppEnv, RequestSession } from "./types.ts";
-import { getAccessToken, invalidateAccessToken } from "./session.ts";
-
-const DEFAULT_ENDPOINT = "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent";
-const DEFAULT_MODEL = "gemini-3.6-flash-high";
-const DEFAULT_PROJECT = "default-cli-project";
+import { DEFAULT_SEARCH_MODEL, cloudPost, cloudProject } from "./cloud.ts";
 
 type GenerateResponse = {
   response?: {
@@ -22,50 +18,26 @@ export async function searchWeb(query: string, env: AppEnv, session: RequestSess
   query = query.trim();
   if (!query) throw new Error("query is required");
 
-  const endpoint = env.AGY_SEARCH_ENDPOINT?.trim() || DEFAULT_ENDPOINT;
-  const model = env.AGY_SEARCH_MODEL?.trim() || DEFAULT_MODEL;
-  const project = env.AGY_SEARCH_PROJECT?.trim() || DEFAULT_PROJECT;
-
-  const payload = {
-    project,
+  const model = env.AGY_SEARCH_MODEL?.trim() || DEFAULT_SEARCH_MODEL;
+  const { status, text } = await cloudPost(env, session, "generateContent", {
+    project: cloudProject(env),
     model,
     request: {
       contents: [{ role: "user", parts: [{ text: query }] }],
       tools: [{ googleSearch: {} }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
     },
-  };
-
-  let token = await getAccessToken(session, env);
-  let resp = await postSearch(endpoint, token, payload);
-  if (resp.status === 401 && session.refreshToken) {
-    invalidateAccessToken(session);
-    token = await getAccessToken(session, env);
-    resp = await postSearch(endpoint, token, payload);
-  }
-  const raw = await resp.text();
+  });
   let parsed: GenerateResponse;
   try {
-    parsed = JSON.parse(raw) as GenerateResponse;
+    parsed = JSON.parse(text) as GenerateResponse;
   } catch {
-    throw new Error(`search parse failed: ${raw.slice(0, 400)}`);
+    throw new Error(`search parse failed: ${text.slice(0, 400)}`);
   }
   if (parsed.error?.message) throw new Error(`search api: ${parsed.error.message}`);
-  if (!resp.ok) throw new Error(`search api http ${resp.status}: ${raw.slice(0, 400)}`);
+  if (status < 200 || status >= 300) throw new Error(`search api http ${status}: ${text.slice(0, 400)}`);
   if (!parsed.response?.candidates?.length) throw new Error("search api returned no candidates");
   return formatSearchResult(query, parsed);
-}
-
-function postSearch(endpoint: string, token: string, payload: unknown): Promise<Response> {
-  return fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "antigravity",
-    },
-    body: JSON.stringify(payload),
-  });
 }
 
 export function formatSearchResult(query: string, parsed: GenerateResponse): string {
@@ -87,7 +59,7 @@ export function formatSearchResult(query: string, parsed: GenerateResponse): str
     chunks.forEach((c, i) => {
       const title = c.web?.title?.trim() || c.web?.uri || "source";
       lines.push(`[${i + 1}] ${title}`);
-      if (c.web?.uri) lines.push(`    ${c.web.uri}`);
+      if (c.web?.uri) lines.push(`    ${c.web?.uri}`);
     });
   }
   return lines.join("\n").trim();

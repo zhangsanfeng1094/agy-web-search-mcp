@@ -1,8 +1,10 @@
 import type { AppEnv, RequestSession } from "./types.ts";
 import { searchWeb } from "./search.ts";
+import { generateImage, parseImageArgs } from "./image.ts";
+import { filesClient } from "./files.ts";
 
 export const SERVER_NAME = "agy-web-search";
-export const SERVER_VERSION = "0.3.3";
+export const SERVER_VERSION = "0.4.0";
 const SUPPORTED = new Set(["2024-11-05", "2025-03-26", "2025-06-18", "2026-07-28"]);
 
 export type RpcRequest = {
@@ -20,6 +22,14 @@ export type RpcResponse = {
   result?: unknown;
   error?: { code: number; message: string };
 };
+
+export type RpcContext = {
+  origin?: string;
+};
+
+export type ToolContent =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string };
 
 export function isNotification(msg: RpcRequest): boolean {
   return msg.id === undefined || msg.id === null;
@@ -43,10 +53,44 @@ export function searchToolDef() {
   };
 }
 
+export function generateImageToolDef() {
+  return {
+    name: "generate_image",
+    description:
+      "Generate or edit an image with the Antigravity/agy Google session (Cloud Code image model). Returns the image file (bytes) plus a short-lived download URL. Use for UI mockups, icons, and assets. When drawing UI, omit device frames unless asked.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: {
+          type: "string",
+          description: "What the image should depict, or how to edit the given images.",
+        },
+        image_name: {
+          type: "string",
+          description:
+            "Short lowercase name with underscores, max 3 words, e.g. login_page_mockup. Used as the filename.",
+        },
+        aspect_ratio: {
+          type: "string",
+          enum: ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9"],
+          description: "Defaults to 1:1.",
+        },
+        image_urls: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional http(s) images to edit, combine, or use as references. Max 3.",
+        },
+      },
+      required: ["prompt"],
+    },
+  };
+}
+
 export async function handleRpc(
   req: RpcRequest,
   env: AppEnv,
   session: RequestSession,
+  ctx: RpcContext = {},
 ): Promise<RpcResponse> {
   const id = req.id;
   switch (req.method) {
@@ -65,14 +109,14 @@ export async function handleRpc(
     case "ping":
       return { jsonrpc: "2.0", id, result: {} };
     case "tools/list":
-      return { jsonrpc: "2.0", id, result: { tools: [searchToolDef()] } };
+      return { jsonrpc: "2.0", id, result: { tools: [searchToolDef(), generateImageToolDef()] } };
     case "tools/call": {
       try {
-        const text = await callTool(req.params, env, session);
+        const content = await callTool(req.params, env, session, ctx);
         return {
           jsonrpc: "2.0",
           id,
-          result: { content: [{ type: "text", text }] },
+          result: { content },
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -92,10 +136,39 @@ export async function handleRpc(
   }
 }
 
-async function callTool(params: unknown, env: AppEnv, session: RequestSession): Promise<string> {
+async function callTool(
+  params: unknown,
+  env: AppEnv,
+  session: RequestSession,
+  ctx: RpcContext,
+): Promise<ToolContent[]> {
   const p = (params ?? {}) as { name?: string; arguments?: unknown };
-  if (p.name !== "search_web") throw new Error(`unknown tool: ${p.name ?? ""}`);
-  return searchWeb(extractQuery(p.arguments), env, session);
+  if (p.name === "search_web") {
+    const text = await searchWeb(extractQuery(p.arguments), env, session);
+    return [{ type: "text", text }];
+  }
+  if (p.name === "generate_image") {
+    const input = parseImageArgs(p.arguments);
+    const img = await generateImage(input, env, session);
+    let urlLine = "";
+    try {
+      const id = await filesClient(env).put({
+        name: img.name,
+        mimeType: img.mimeType,
+        data: img.data,
+      });
+      if (ctx.origin) urlLine = `\nDownload: ${ctx.origin}/files/${id}/${encodeURIComponent(img.name)}`;
+    } catch {
+      // still return the file in the tool result
+    }
+    const text =
+      `Saved ${img.name} (${img.bytes} bytes, ${img.mimeType}, ${img.aspectRatio}, ${img.model})` + urlLine;
+    return [
+      { type: "text", text },
+      { type: "image", data: img.data, mimeType: img.mimeType },
+    ];
+  }
+  throw new Error(`unknown tool: ${p.name ?? ""}`);
 }
 
 export function extractQuery(raw: unknown): string {
@@ -113,3 +186,19 @@ export function extractQuery(raw: unknown): string {
   }
   throw new Error("invalid arguments");
 }
+
+export function extractToolQuery(name: string | undefined, args: unknown): string | undefined {
+  if (name === "generate_image") {
+    try {
+      return parseImageArgs(args).prompt;
+    } catch {
+      return undefined;
+    }
+  }
+  try {
+    return extractQuery(args);
+  } catch {
+    return undefined;
+  }
+}
+

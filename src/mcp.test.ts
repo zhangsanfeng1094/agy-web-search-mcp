@@ -8,7 +8,23 @@ describe("mcp protocol", () => {
     expect(JSON.stringify(init.result)).toContain("agy-web-search");
     const list = await handleRpc({ jsonrpc: "2.0", id: 2, method: "tools/list" }, {}, { source: "missing" });
     expect(JSON.stringify(list.result)).toContain("search_web");
+    expect(JSON.stringify(list.result)).toContain("generate_image");
     expect(searchToolDef().inputSchema.required).toContain("query");
+  });
+
+  test("generate_image without session is a fail", async () => {
+    const resp = await handleRpc(
+      {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "generate_image", arguments: { prompt: "a red circle", image_name: "red_circle" } },
+      },
+      {},
+      { source: "missing" },
+    );
+    expect((resp.result as { isError?: boolean } | undefined)?.isError).toBe(true);
+    expect(JSON.stringify(resp.result)).toContain("no Google session");
   });
 
   test("extractQuery", () => {

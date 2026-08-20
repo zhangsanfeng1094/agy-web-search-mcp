@@ -7,8 +7,15 @@ AGY_SEARCH_PROJECT = "default-cli-project"
 AGY_SEARCH_MODEL = "gemini-3.6-flash-high"
 
 [durable_objects]
-bindings = [{ name = "METRICS", class_name = "MetricsStore" }]
+bindings = [
+  { name = "METRICS", class_name = "MetricsStore" },
+  { name = "FILES", class_name = "FilesStore" },
+]
 
 [[migrations]]
 tag = "v1"
 new_classes = ["MetricsStore"]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["FilesStore"]

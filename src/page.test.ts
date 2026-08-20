@@ -29,6 +29,7 @@ describe("browser session storage", () => {
     expect(html).toContain("browser (localStorage)");
     expect(html).toContain("https://example.workers.dev/mcp");
     expect(html).toContain("search_web");
+    expect(html).toContain("generate_image");
   });
 
   test("agent prompt includes url, tool, and tokens", () => {

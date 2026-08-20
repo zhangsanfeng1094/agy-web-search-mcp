@@ -13,6 +13,7 @@ export default function handler(req: Request): Promise<Response> {
     AGY_SEARCH_PROJECT: process.env.AGY_SEARCH_PROJECT,
     AGY_SEARCH_MODEL: process.env.AGY_SEARCH_MODEL,
     AGY_SEARCH_ENDPOINT: process.env.AGY_SEARCH_ENDPOINT,
+    AGY_IMAGE_MODEL: process.env.AGY_IMAGE_MODEL,
     MCP_AUTH_TOKEN: process.env.MCP_AUTH_TOKEN,
   };
   return handleRequest(req, env);
